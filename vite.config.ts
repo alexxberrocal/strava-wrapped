@@ -1,5 +1,5 @@
 /// <reference types="vitest/config" />
-import { createReadStream, existsSync, statSync } from 'node:fs';
+import { createReadStream, existsSync, statSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 
@@ -19,6 +19,21 @@ function sampleExport(): Plugin {
         res.setHeader('Content-Type', 'application/zip');
         res.setHeader('Content-Length', String(statSync(file).size));
         createReadStream(file).pipe(res);
+      });
+      // Guarda imágenes generadas en el navegador (og.png, apple-touch-icon.png) en /public.
+      server.middlewares.use('/__save', (req, res) => {
+        const name = new URL(req.url ?? '', 'http://x').searchParams.get('name') ?? '';
+        if (req.method !== 'POST' || !/^(og|apple-touch-icon|icon-512)\.png$/.test(name)) {
+          res.statusCode = 400;
+          res.end('no');
+          return;
+        }
+        const chunks: Buffer[] = [];
+        req.on('data', (c: Buffer) => chunks.push(c));
+        req.on('end', () => {
+          writeFileSync(resolve(import.meta.dirname, 'public', name), Buffer.concat(chunks));
+          res.end('ok');
+        });
       });
     },
   };

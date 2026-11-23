@@ -1,0 +1,13 @@
+{
+  "name": "RUNRECAP · Tu año corriendo",
+  "short_name": "RUNRECAP",
+  "description": "Tu resumen runner del año a partir de tu archivo de Strava.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#F3EEE6",
+  "theme_color": "#FC4C02",
+  "icons": [
+    { "src": "./apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
