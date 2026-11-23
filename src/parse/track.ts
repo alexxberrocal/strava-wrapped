@@ -164,6 +164,7 @@ export function summarizeTrack(d: DecodedTrack, opts: SummarizeOptions): TrackSu
 
   // ---- GPS con filtro de saltos ----
   const gLat: number[] = [], gLon: number[] = [], gTime: number[] = [];
+  const rejected: number[] = [];
   let lastLat = NaN, lastLon = NaN, lastT = NaN;
   for (const i of idx) {
     const la = d.lat[i], lo = d.lon[i];
@@ -171,8 +172,31 @@ export function summarizeTrack(d: DecodedTrack, opts: SummarizeOptions): TrackSu
     if (Number.isFinite(lastLat)) {
       const dist = haversine(lastLat, lastLon, la, lo);
       const dt = d.time[i] - lastT;
-      if (dist > 5 && (dt <= 0 ? dist > 50 : dist / dt > maxSpeed)) continue;
+      if (dist > 5 && (dt <= 0 ? dist > 50 : dist / dt > maxSpeed)) {
+        // Si lo malo era el ancla (primer punto con el GPS aún frío), varios puntos seguidos
+        // "saltan" pero son coherentes entre sí: se descarta lo aceptado y se empieza de nuevo.
+        rejected.push(i);
+        if (rejected.length >= 4 && gLat.length <= 15) {
+          const r0 = rejected[0], rN = rejected[rejected.length - 1];
+          const span = haversine(d.lat[r0], d.lon[r0], d.lat[rN], d.lon[rN]);
+          const spanT = Math.max(1, d.time[rN] - d.time[r0]);
+          if (span / spanT <= maxSpeed) {
+            gLat.length = gLon.length = gTime.length = 0;
+            for (const k of rejected) {
+              gLat.push(d.lat[k]);
+              gLon.push(d.lon[k]);
+              gTime.push(d.time[k]);
+            }
+            lastLat = d.lat[rN];
+            lastLon = d.lon[rN];
+            lastT = d.time[rN];
+            rejected.length = 0;
+          }
+        }
+        continue;
+      }
     }
+    rejected.length = 0;
     gLat.push(la);
     gLon.push(lo);
     gTime.push(d.time[i]);

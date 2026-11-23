@@ -8,7 +8,7 @@ mapa de calor de tu ciudad, tu perfil runner… en hasta 20 pantallas animadas l
 compartir en Instagram (imagen o vídeo).
 
 - **100 % en el navegador**: el archivo no se sube a ningún servidor. Sin registro ni login.
-- **Funciona en ordenador y en móvil** (web, sin app).
+- **Funciona en ordenador y en móvil** (Android e iPhone), en el navegador: sin app que instalar.
 - **Cualquier idioma de Strava**: el export viene traducido (cabeceras y fechas) y se detecta solo.
 - **Exports enormes**: solo se leen las partes necesarias del `.zip`, aunque pese varios GB.
 - Español e inglés, kilómetros o millas.

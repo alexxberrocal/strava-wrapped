@@ -44,26 +44,37 @@ const GALLERY_IDS = ['intro', 'distance', 'time', 'calendar', 'elevation', 'reco
 let mini: MiniPlayer | null = null;
 let galleryToken = 0;
 
-async function demoDeck(): Promise<{ cards: Card[]; painter: CardPainter }> {
-  const lang = siteLang();
-  const [{ demoStats }, , countries] = await Promise.all([import('./demo/demo'), ensureFonts(), loadCountries().catch(() => null)]);
-  const stats = demoStats(lang);
-  const env: DeckEnv = { fmt: new Fmt(lang, detectUnits()), stats, countries, photos: [], brand: BRAND.name, domain: BRAND.domain };
-  return { cards: buildDeck(env), painter: new CardPainter(env) };
-}
+let demoToken = 0;
 
 async function refreshDemo() {
-  const { cards, painter } = await demoDeck();
-  const byId = new Map(cards.map((c) => [c.id, c]));
-  const hero = HERO_IDS.map((id) => byId.get(id)).filter((c): c is Card => !!c);
-  const canvas = document.getElementById('hero-canvas') as HTMLCanvasElement | null;
-  if (canvas) {
-    if (!mini) mini = new MiniPlayer(canvas, hero, painter);
-    else mini.setCards(hero, painter);
-  }
+  const token = ++demoToken;
+  const lang = siteLang();
+  const countriesP = loadCountries().catch(() => null);
+  const [{ demoStats }] = await Promise.all([import('./demo/demo'), ensureFonts()]);
+  const stats = demoStats(lang);
+  const make = (countries: Awaited<typeof countriesP>) => {
+    const env: DeckEnv = { fmt: new Fmt(lang, detectUnits()), stats, countries, photos: [], brand: BRAND.name, domain: BRAND.domain };
+    return { cards: buildDeck(env), painter: new CardPainter(env) };
+  };
+  const apply = (d: { cards: Card[]; painter: CardPainter }, keep: boolean) => {
+    const byId = new Map(d.cards.map((c) => [c.id, c]));
+    const hero = HERO_IDS.map((id) => byId.get(id)).filter((c): c is Card => !!c);
+    const canvas = document.getElementById('hero-canvas') as HTMLCanvasElement | null;
+    if (canvas) {
+      if (!mini) mini = new MiniPlayer(canvas, hero, d.painter);
+      else mini.setCards(hero, d.painter, keep);
+    }
+    return byId;
+  };
+  // 1) La demo arranca ya; 2) cuando llega el mapa del mundo se añaden las tarjetas con mapa.
+  apply(make(null), false);
+  const countries = await countriesP;
+  if (token !== demoToken) return;
+  const full = make(countries);
+  const byId = apply(full, true);
   renderGallery(
     GALLERY_IDS.map((id) => byId.get(id)).filter((c): c is Card => !!c),
-    painter,
+    full.painter,
   );
 }
 

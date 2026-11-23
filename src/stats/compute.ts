@@ -420,8 +420,11 @@ export function computeStats(input: ComputeInput): WrappedStats {
       const firstW = weekIndex(year, startDoy);
       let hit = 0, total = 0;
       for (let w = firstW; w < weeksInPeriod; w++) {
+        const ok = (weekDist.get(w) ?? 0) >= g0.value;
+        // La semana actual, si aún no ha terminado y no está cumplida, no cuenta.
+        if (w === weeksInPeriod - 1 && isPartialYear && periodEnd.dow < 6 && !ok) continue;
         total++;
-        if ((weekDist.get(w) ?? 0) >= g0.value) hit++;
+        if (ok) hit++;
       }
       if (total > 0) goal = { period: 'week', target: g0.value, hit, total };
     } else if (g0.period === 'month') {

@@ -29,11 +29,17 @@ export class MiniPlayer {
     this.kick();
   }
 
-  setCards(cards: Card[], painter: CardPainter) {
+  /** Cambia las tarjetas; si la actual sigue existiendo, continúa donde iba (sin saltos). */
+  setCards(cards: Card[], painter: CardPainter, keepPosition = false) {
+    const currentId = this.cards[this.index]?.id;
     this.cards = cards;
     this.painter = painter;
-    this.index = 0;
-    this.t = 0;
+    const same = keepPosition ? cards.findIndex((c) => c.id === currentId) : -1;
+    if (same >= 0) this.index = same;
+    else {
+      this.index = 0;
+      this.t = 0;
+    }
     this.kick();
   }
 

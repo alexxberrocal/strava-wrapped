@@ -43,6 +43,7 @@ export interface WrappedOptions {
 }
 
 const HOUR = 3600000;
+const VIRTUAL = /virtu|zwift/i;
 
 /** Orquesta: escaneo del export -> procesado de ficheros del año -> enriquecido geográfico -> estadísticas. */
 export class Pipeline {
@@ -145,7 +146,11 @@ export class Pipeline {
     // Primera pasada: zonas horarias de las que tienen GPS.
     const tzVotes = new Map<string, number>();
     const pre = list.map((csv) => {
-      const track = withTracks ? (this.tracks.get(csv.id) ?? null) : null;
+      let track = withTracks ? (this.tracks.get(csv.id) ?? null) : null;
+      // Zwift y similares graban GPS de mundos virtuales (Watopia cae en el Pacífico): fuera mapas.
+      if (track && (VIRTUAL.test(csv.typeRaw) || track.subSport === 'virtual_activity')) {
+        track = { ...track, hasGps: false, start: null, end: null, track: null, trackCum: null, bbox: null };
+      }
       const start = track?.ok && track.hasGps ? track.start : null;
       const tz = start ? tzAt(start[0], start[1]) : null;
       if (tz) tzVotes.set(tz, (tzVotes.get(tz) ?? 0) + 1);

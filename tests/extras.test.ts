@@ -87,3 +87,23 @@ describe('textos', () => {
     expect(lines.some((l) => /56$/.test(l))).toBe(false);
   });
 });
+
+import { summarizeTrack } from '../src/parse/track';
+
+describe('GPS con mal arranque', () => {
+  it('si el primer punto está lejísimos, se queda con la ruta buena', () => {
+    const n = 300;
+    const time = Array.from({ length: n }, (_, i) => 1_700_000_000 + i * 2);
+    // Punto 0: 400 km al norte (GPS frío). El resto: carrera normal a ~3 m/s.
+    const lat = time.map((_, i) => (i === 0 ? 45 : 41.38 + i * 5.4e-5));
+    const lon = time.map(() => 2.17);
+    const nan = () => new Array(n).fill(NaN);
+    const s = summarizeTrack(
+      { time, lat, lon, alt: nan(), hr: nan(), cad: nan(), dist: nan(), temp: nan(), localOffset: null, sport: 'running', subSport: null, startTime: null },
+      { id: 'x', csvDistance: 0 },
+    );
+    expect(s.hasGps).toBe(true);
+    expect(s.start![0]).toBeLessThan(41.5);
+    expect(s.gpsDistance).toBeGreaterThan(1500);
+  });
+});

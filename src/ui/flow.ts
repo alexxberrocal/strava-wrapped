@@ -1,7 +1,6 @@
 import { BRAND, PRIVACY_TRIM_METERS } from '../config';
 import type { ArchiveInput } from '../parse/archive';
-import { Pipeline, type Dataset } from '../app/pipeline';
-import { PoolError } from '../app/pool';
+import type { Dataset, Pipeline } from '../app/pipeline';
 import { loadCountries } from '../geo/countries';
 import { Fmt, type Units } from '../i18n/format';
 import { applySiteLang, siteLang, tr } from '../i18n/site';
@@ -110,6 +109,8 @@ export class Flow {
   // ------------------------------------------------------------ Proceso
   async start(input: ArchiveInput) {
     this.reset();
+    // El motor de análisis (workers, zonas horarias…) solo se descarga al subir un archivo.
+    const { Pipeline } = await import('../app/pipeline');
     this.pipeline = new Pipeline(input);
     const status = h('ul', { class: 'status' });
     const bar = h('i');
@@ -413,7 +414,7 @@ export class Flow {
   // ------------------------------------------------------------ Errores y reinicio
   private showError(err: unknown) {
     console.error(err);
-    const code = err instanceof PoolError ? err.code : (err as { code?: string })?.code;
+    const code = (err as { code?: string })?.code;
     const msg =
       code === 'no-csv'
         ? tr('err.noCsv')
