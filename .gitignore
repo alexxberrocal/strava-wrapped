@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.vite/
+coverage/
+*.log
+.DS_Store
+Thumbs.db
+.claude/settings.local.json
+# Datos de origen pesados (se descargan para regenerar public/data con `npm run geodata`)
+scripts/cities15000.zip

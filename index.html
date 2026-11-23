@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>RUNRECAP · Tu año corriendo, en una historia</title>
+    <meta name="description" content="Crea tu resumen anual de running a partir del archivo de Strava: kilómetros, países, mapa de calor, marcas y más. Listo para Instagram. Gratis y 100 % en tu navegador." />
+    <meta name="theme-color" content="#FC4C02" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="RUNRECAP · Tu año corriendo, en una historia" />
+    <meta property="og:description" content="Tu resumen runner del año a partir de tu archivo de Strava. Listo para compartir en Instagram." />
+    <meta property="og:image" content="./og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <a class="skip" href="#crear" data-i18n="hero.cta">Crear mi resumen</a>
+
+    <header class="topbar">
+      <div class="wrap topbar__inner">
+        <a class="logo" href="./" aria-label="RUNRECAP">
+          <svg class="logo__mark" viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M6 24c4-1 5-7 9-8s6 4 10-1" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" />
+            <circle cx="6" cy="24" r="3.2" fill="currentColor" />
+            <circle cx="25" cy="15" r="3.6" fill="none" stroke="currentColor" stroke-width="2.6" />
+          </svg>
+          <span>RUNRECAP</span>
+        </a>
+        <nav class="topbar__nav">
+          <a href="#como" data-i18n="nav.how">Cómo funciona</a>
+          <a href="#faq" data-i18n="nav.faq">Preguntas</a>
+          <div class="lang" role="group" aria-label="Idioma / Language">
+            <button type="button" data-lang="es" aria-pressed="true">ES</button>
+            <button type="button" data-lang="en" aria-pressed="false">EN</button>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="wrap hero__inner">
+          <div class="hero__copy">
+            <p class="kicker" data-i18n="hero.kicker">Tu resumen runner del año</p>
+            <h1 class="hero__title" data-i18n-html="hero.title">Tu año<br />corriendo,<br /><em>contado</em><br />como merece.</h1>
+            <p class="hero__lead" data-i18n="hero.lead">Sube el archivo que te da Strava y en un minuto tendrás tu resumen del año: kilómetros, países, tu mapa de calor, tus marcas… listo para compartir en Instagram.</p>
+            <div class="hero__ctas">
+              <a class="btn btn--primary" href="#crear"><span data-i18n="hero.cta">Crear mi resumen</span> <span aria-hidden="true">→</span></a>
+              <button class="btn btn--ghost" type="button" id="demo-btn"><span data-i18n="hero.demo">Ver un ejemplo</span></button>
+            </div>
+            <p class="trust">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2" fill="none" stroke="currentColor" stroke-width="2" /><rect x="5" y="10" width="14" height="10" rx="2.5" fill="currentColor" /></svg>
+              <span data-i18n="hero.trust">Tus datos no salen de tu dispositivo · Gratis · Sin registro</span>
+            </p>
+          </div>
+          <div class="hero__visual" aria-hidden="true">
+            <div class="phone">
+              <canvas id="hero-canvas" class="phone__screen"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="steps" id="como">
+        <div class="wrap">
+          <p class="kicker kicker--light" data-i18n="steps.kicker">Cómo funciona</p>
+          <h2 class="section-title" data-i18n-html="steps.title">3 pasos.<br />5 minutos.</h2>
+          <div class="steps__grid">
+            <article class="step">
+              <span class="step__num">01</span>
+              <h3 data-i18n="step1.title">Pide tu archivo a Strava</h3>
+              <p data-i18n-html="step1.text"></p>
+              <a class="btn btn--light btn--small" id="strava-link" target="_blank" rel="noopener noreferrer"><span data-i18n="step1.cta">Abrir Strava</span> <span aria-hidden="true">↗</span></a>
+              <p class="step__note" data-i18n="step1.note"></p>
+            </article>
+            <article class="step">
+              <span class="step__num">02</span>
+              <h3 data-i18n="step2.title">Descarga el .zip</h3>
+              <p data-i18n-html="step2.text"></p>
+            </article>
+            <article class="step step--drop" id="crear">
+              <span class="step__num">03</span>
+              <h3 data-i18n="step3.title">Suéltalo aquí</h3>
+              <div class="flow" id="flow">
+                <label class="drop" id="drop" tabindex="0">
+                  <input type="file" id="file-input" accept=".zip,application/zip,application/x-zip-compressed,.csv,text/csv" hidden />
+                  <svg class="drop__icon" viewBox="0 0 48 48" aria-hidden="true">
+                    <path d="M24 31V9m0 0-8 8m8-8 8 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M9 30v6a3 3 0 0 0 3 3h24a3 3 0 0 0 3-3v-6" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" />
+                  </svg>
+                  <span class="drop__title" data-i18n="drop.title">Arrastra aquí tu export_XXXX.zip</span>
+                  <span class="drop__sub" data-i18n="drop.sub">o pulsa para elegirlo</span>
+                </label>
+                <div class="drop__extra">
+                  <button type="button" class="linkish" id="folder-btn" data-i18n="drop.folder">¿Ya lo descomprimiste? Elige la carpeta</button>
+                  <input type="file" id="folder-input" webkitdirectory multiple hidden />
+                  <p class="drop__privacy" data-i18n="drop.privacy">Se procesa en tu navegador. Nada se sube a ningún servidor.</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="gallery">
+        <div class="wrap">
+          <p class="kicker" data-i18n="gallery.kicker">Lo que vas a ver</p>
+          <h2 class="section-title" data-i18n-html="gallery.title">Hasta 20 pantallas<br />de tu año.</h2>
+        </div>
+        <div class="gallery__strip" id="gallery" tabindex="0"></div>
+      </section>
+
+      <section class="faq" id="faq">
+        <div class="wrap faq__inner">
+          <h2 class="section-title" data-i18n-html="faq.title">Preguntas<br />frecuentes</h2>
+          <div class="faq__list">
+            <details><summary data-i18n="faq.q1"></summary><p data-i18n="faq.a1"></p></details>
+            <details><summary data-i18n="faq.q2"></summary><p data-i18n="faq.a2"></p></details>
+            <details><summary data-i18n="faq.q3"></summary><p data-i18n="faq.a3"></p></details>
+            <details><summary data-i18n="faq.q4"></summary><p data-i18n="faq.a4"></p></details>
+            <details><summary data-i18n="faq.q5"></summary><p data-i18n="faq.a5"></p></details>
+            <details><summary data-i18n="faq.q6"></summary><p data-i18n="faq.a6"></p></details>
+            <details><summary data-i18n="faq.q7"></summary><p data-i18n="faq.a7"></p></details>
+          </div>
+        </div>
+      </section>
+
+      <section class="results" id="results" hidden>
+        <div class="wrap">
+          <p class="kicker" id="results-kicker"></p>
+          <h2 class="section-title" data-i18n-html="results.title">Todas tus<br />pantallas</h2>
+          <div class="results__actions">
+            <button type="button" class="btn btn--primary" id="results-play"><span data-i18n="results.replay">Ver la historia</span></button>
+            <button type="button" class="btn btn--ghost" id="results-zip"><span data-i18n="results.zip">Descargar todas (.zip)</span></button>
+            <button type="button" class="btn btn--ghost" id="results-settings"><span data-i18n="results.settings">Cambiar ajustes</span></button>
+          </div>
+          <p class="results__hint" data-i18n="results.hint"></p>
+          <div class="results__grid" id="results-grid"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer__inner">
+        <div class="logo logo--footer">
+          <svg class="logo__mark" viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M6 24c4-1 5-7 9-8s6 4 10-1" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" />
+            <circle cx="6" cy="24" r="3.2" fill="currentColor" />
+            <circle cx="25" cy="15" r="3.6" fill="none" stroke="currentColor" stroke-width="2.6" />
+          </svg>
+          <span>RUNRECAP</span>
+        </div>
+        <p data-i18n="footer.legal"></p>
+        <p class="footer__credits" data-i18n="footer.credits"></p>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
