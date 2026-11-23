@@ -74,7 +74,7 @@ export class CardPainter {
     return s;
   }
 
-  paint(ctx: Ctx, card: Card, t: number, scale: number, opts: { still?: boolean; chrome?: boolean; offsetX?: number; offsetY?: number } = {}) {
+  paint(ctx: Ctx, card: Card, t: number, scale: number, opts: { still?: boolean; chrome?: boolean | 'left'; offsetX?: number; offsetY?: number } = {}) {
     const st = this.state(card, scale);
     const theme = THEMES[card.theme];
     ctx.save();
@@ -111,21 +111,23 @@ export class CardPainter {
     ctx.save();
     card.render(frame);
     ctx.restore();
-    if (opts.chrome !== false) drawChrome(ctx, theme, this.env);
+    if (opts.chrome !== false) drawChrome(ctx, theme, this.env, opts.chrome === 'left');
     drawGrain(ctx, theme);
     ctx.restore();
   }
 }
 
-function drawChrome(ctx: Ctx, theme: Theme, env: DeckEnv) {
+function drawChrome(ctx: Ctx, theme: Theme, env: DeckEnv, leftOnly = false) {
   ctx.save();
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = theme.sub;
   setFont(ctx, 'text', 25, 800);
   drawTracked(ctx, env.brand, M, 132, 5);
-  setFont(ctx, 'text', 25, 700);
-  const name = env.stats.name ? `${env.stats.name.toUpperCase()} · ${env.stats.year}` : String(env.stats.year);
-  drawTracked(ctx, name, W - M, 132, 4, 'right');
+  if (!leftOnly) {
+    setFont(ctx, 'text', 25, 700);
+    const name = env.stats.name ? `${env.stats.name.toUpperCase()} · ${env.stats.year}` : String(env.stats.year);
+    drawTracked(ctx, name, W - M, 132, 4, 'right');
+  }
   // Marca de agua
   ctx.font = `600 25px ${FONT_TEXT}`;
   ctx.fillStyle = theme.sub;

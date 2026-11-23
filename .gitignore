@@ -9,3 +9,4 @@ Thumbs.db
 # Datos de origen pesados (se descargan para regenerar public/data con `npm run geodata`)
 scripts/cities15000.zip
 .claude/scheduled_tasks.lock
+samples/

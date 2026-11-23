@@ -4,7 +4,7 @@ import { Pipeline, type Dataset } from '../app/pipeline';
 import { PoolError } from '../app/pool';
 import { loadCountries } from '../geo/countries';
 import { Fmt, type Units } from '../i18n/format';
-import { siteLang, tr } from '../i18n/site';
+import { applySiteLang, siteLang, tr } from '../i18n/site';
 import { CardPainter, type Card, type DeckEnv } from '../render/card';
 import { buildDeck } from '../render/deck';
 import { ensureFonts } from '../render/fonts';
@@ -408,6 +408,7 @@ export class Flow {
   resetToDrop() {
     this.reset();
     this.flowEl.innerHTML = this.dropHTML;
+    applySiteLang(this.flowEl);
     this.bindDrop();
   }
 

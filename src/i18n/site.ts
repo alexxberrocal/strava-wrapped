@@ -31,6 +31,8 @@ const STRINGS = {
   'step3.title': ['Suéltalo aquí', 'Drop it here'],
   'drop.title': ['Arrastra aquí tu export_XXXX.zip', 'Drag your export_XXXX.zip here'],
   'drop.sub': ['o pulsa para elegirlo', 'or click to choose it'],
+  'drop.titleTouch': ['Toca para elegir tu export_XXXX.zip', 'Tap to choose your export_XXXX.zip'],
+  'drop.subTouch': ['Suele estar en Descargas o en la app Archivos', 'Usually in Downloads or the Files app'],
   'drop.folder': ['¿Ya lo descomprimiste? Elige la carpeta', 'Already unzipped? Choose the folder'],
   'drop.privacy': ['Se procesa en tu navegador. Nada se sube a ningún servidor.', 'Processed in your browser. Nothing is uploaded anywhere.'],
   'gallery.kicker': ['Lo que vas a ver', "What you'll get"],
@@ -189,7 +191,9 @@ export function saveLang(lang: Lang) {
   }
 }
 
-export function detectUnits(): 'metric' | 'imperial' {
+/** Millas solo para quien navega en inglés de EE. UU. (o Liberia/Myanmar); en español siempre km. */
+export function detectUnits(lang: Lang = current): 'metric' | 'imperial' {
+  if (lang === 'es') return 'metric';
   const nav = (navigator.languages?.[0] ?? navigator.language ?? '').toLowerCase();
   return nav === 'en-us' || nav === 'en-lr' || nav === 'my' ? 'imperial' : 'metric';
 }

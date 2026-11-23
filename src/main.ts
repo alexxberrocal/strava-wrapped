@@ -10,15 +10,19 @@ import { loadCountries } from './geo/countries';
 import { Flow } from './ui/flow';
 import { MiniPlayer } from './ui/mini';
 
-const units = detectUnits();
 setSiteLang(detectLang());
+// En pantallas táctiles no se "arrastra": cambia el texto de la zona de subida.
+if (window.matchMedia?.('(pointer: coarse)').matches) {
+  document.querySelector('.drop__title')?.setAttribute('data-i18n', 'drop.titleTouch');
+  document.querySelector('.drop__sub')?.setAttribute('data-i18n', 'drop.subTouch');
+}
 applySiteLang();
 
 const strava = document.getElementById('strava-link') as HTMLAnchorElement | null;
 if (strava) strava.href = BRAND.stravaExportUrl;
 
-const flow = new Flow(document.getElementById('flow')!, document.getElementById('results')!, () => units);
-document.getElementById('demo-btn')?.addEventListener('click', () => void flow.playDemo(units));
+const flow = new Flow(document.getElementById('flow')!, document.getElementById('results')!, () => detectUnits());
+document.getElementById('demo-btn')?.addEventListener('click', () => void flow.playDemo(detectUnits()));
 
 // ---------------- Idioma ----------------
 const langButtons = document.querySelectorAll<HTMLButtonElement>('.lang button');
@@ -44,7 +48,7 @@ async function demoDeck(): Promise<{ cards: Card[]; painter: CardPainter }> {
   const lang = siteLang();
   const [{ demoStats }, , countries] = await Promise.all([import('./demo/demo'), ensureFonts(), loadCountries().catch(() => null)]);
   const stats = demoStats(lang);
-  const env: DeckEnv = { fmt: new Fmt(lang, units), stats, countries, photos: [], brand: BRAND.name, domain: BRAND.domain };
+  const env: DeckEnv = { fmt: new Fmt(lang, detectUnits()), stats, countries, photos: [], brand: BRAND.name, domain: BRAND.domain };
   return { cards: buildDeck(env), painter: new CardPainter(env) };
 }
 
@@ -110,4 +114,14 @@ void refreshDemo();
 
 if (import.meta.env.DEV) {
   (window as unknown as Record<string, unknown>).__flow = flow;
+  // /?sample carga el export de prueba (npm run sample) para probar el flujo completo.
+  if (new URLSearchParams(location.search).has('sample')) {
+    void fetch('./__sample.zip')
+      .then((r) => (r.ok ? r.blob() : Promise.reject(new Error('npm run sample'))))
+      .then((b) => {
+        document.getElementById('crear')?.scrollIntoView();
+        void flow.start({ kind: 'zip', file: new File([b], 'export_12345678.zip', { type: 'application/zip' }) });
+      })
+      .catch((e) => console.warn(e));
+  }
 }

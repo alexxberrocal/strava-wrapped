@@ -4,7 +4,15 @@
     {
       "name": "web",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["node_modules/vite/bin/vite.js", "--port", "5173", "--strictPort", "--host", "127.0.0.1"],
+      "runtimeArgs": [
+        "C:/Users/alexb/Desktop/Claude Projects/strava-wrapped/node_modules/vite/bin/vite.js",
+        "C:/Users/alexb/Desktop/Claude Projects/strava-wrapped",
+        "--port",
+        "5173",
+        "--strictPort",
+        "--host",
+        "127.0.0.1"
+      ],
       "port": 5173
     }
   ]

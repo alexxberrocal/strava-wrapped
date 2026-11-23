@@ -116,6 +116,7 @@ export class StoryPlayer {
     const bg = THEMES[card.theme].bg;
     const narrow = window.matchMedia('(max-width: 700px)').matches;
     this.root.style.background = narrow ? bg : `color-mix(in srgb, ${bg} 22%, #0b0b0b)`;
+    this.root.dataset.theme = card.theme;
     this.fills.forEach((f, i) => {
       f.style.width = i < this.index ? '100%' : '0%';
     });
@@ -139,7 +140,8 @@ export class StoryPlayer {
 
   private paint(now: number) {
     const card = this.o.cards[this.index];
-    this.o.painter.paint(this.ctx, card, this.t, this.scale);
+    // Sin el nombre de la cabecera: ahí van los controles del visor (en la imagen exportada sí sale).
+    this.o.painter.paint(this.ctx, card, this.t, this.scale, { chrome: 'left' });
     if (this.from) {
       const p = (now - this.fromAt) / FADE_MS;
       if (p >= 1) this.from = null;
