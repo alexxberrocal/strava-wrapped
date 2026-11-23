@@ -42,7 +42,9 @@ export function calendarCard(env: DeckEnv): Card {
       parts.push(
         idle <= 0
           ? fmt.t('Y **ni una sola semana** sin correr.', 'And **not a single week** without a run.')
-          : fmt.t(`Solo **${idle} ${idle === 1 ? 'semana' : 'semanas'}** sin correr.`, `Only **${idle} ${idle === 1 ? 'week' : 'weeks'}** without a run.`),
+          : idle <= 8
+            ? fmt.t(`Solo **${idle} ${idle === 1 ? 'semana' : 'semanas'}** sin correr.`, `Only **${idle} ${idle === 1 ? 'week' : 'weeks'}** without a run.`)
+            : fmt.t(`Corriste en **${s.activeWeeks} de ${s.weeksInPeriod} semanas**.`, `You ran in **${s.activeWeeks} of ${s.weeksInPeriod} weeks**.`),
       );
       paragraph(f, parts.join(' '), M, y + hs * 0.95 + 88, CW, 37, { start: 550 });
 

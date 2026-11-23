@@ -65,15 +65,17 @@ export function distanceCard(env: DeckEnv): Card {
       kicker(f, fmt.t('Distancia total', 'Total distance'), M, KICK);
       const size = 330;
       const base = heroBaseline(f, size);
-      heroNumber(f, fmt.dist(counting(f, s.distance, 150, 1800)), fmt.distUnit.toUpperCase(), M, base, size, { start: 100, unitScale: 0.32 });
+      heroNumber(f, fmt.dist(counting(f, s.distance, 150, 1800)), fmt.distUnit.toUpperCase(), M, base, size, { start: 100, unitScale: 0.32, fit: fmt.dist(s.distance) });
       let y = base + 150;
       let lines: string[];
       let colors: (string | undefined)[] = [];
       if (dest && homeName) {
         lines = [fmt.t(`De ${homeName} a`, `From ${homeName} to`), dest.name];
         colors = [theme.fg, COLORS.orange];
-      } else {
+      } else if (marathons >= 1) {
         lines = [`${fmt.smart(marathons, marathons < 10 ? 1 : 0)} ${fmt.t('maratones', 'marathons')}`, fmt.t('seguidos', 'back to back')];
+      } else {
+        lines = [fmt.t(`${fmt.num(s.distance / 400)} vueltas`, `${fmt.num(s.distance / 400)} laps`), fmt.t('a la pista', 'of a track')];
       }
       const hs = Math.min(112, ...lines.map((l) => fitSize(ctx, l.toUpperCase(), 'display', 112, CW)));
       headline(f, lines, M, y, hs, { start: 500, colors });
@@ -84,10 +86,15 @@ export function distanceCard(env: DeckEnv): Card {
             `Saliendo de ${homeName}, habrías llegado corriendo hasta **${dest.name}**: ${fmt.distWithUnit(dest.km * 1000, 0)} en línea recta. Son ${mar}.`,
             `Starting in ${homeName}, you could have run all the way to **${dest.name}**: ${fmt.distWithUnit(dest.km * 1000, 0)} as the crow flies. That's ${mar}.`,
           )
-        : fmt.t(
-            `Equivale a ${mar} y al **${fmt.smart((km / EARTH_KM) * 100, 1)}%** de la vuelta al mundo.`,
-            `That's ${mar} and **${fmt.smart((km / EARTH_KM) * 100, 1)}%** of the way around the world.`,
-          );
+        : marathons >= 1
+          ? fmt.t(
+              `Equivale a ${mar} y al **${fmt.smart((km / EARTH_KM) * 100, 1)}%** de la vuelta al mundo.`,
+              `That's ${mar} and **${fmt.smart((km / EARTH_KM) * 100, 1)}%** of the way around the world.`,
+            )
+          : fmt.t(
+              `Como dar **${fmt.num(s.distance / 400)} vueltas** a una pista de atletismo. Y esto acaba de empezar.`,
+              `Like running **${fmt.num(s.distance / 400)} laps** of an athletics track. And this is just the start.`,
+            );
       paragraph(f, text, M, y, CW, 38, { start: 800 });
 
       // Mapa con el arco de casa al destino.
@@ -216,10 +223,13 @@ export function timeCard(env: DeckEnv): Card {
       kicker(f, fmt.t('Tiempo en movimiento', 'Moving time'), M, KICK);
       const size = 330;
       const base = heroBaseline(f, size);
-      heroNumber(f, fmt.num(counting(f, hours, 150, 1600), 0), fmt.t('H', 'H'), M, base, size, { start: 100, unitScale: 0.32 });
+      heroNumber(f, fmt.num(counting(f, hours, 150, 1600), 0), fmt.t('H', 'H'), M, base, size, { start: 100, unitScale: 0.32, fit: fmt.num(hours, 0) });
       const y = base + 150;
       const daysTxt = `${fmt.smart(days, 1)} ${fmt.plural(Math.round(days * 10) / 10, fmt.t('día', 'day'), fmt.t('días', 'days'))}`;
-      headline(f, [daysTxt, fmt.t('sin parar', 'non-stop')], M, y, 112, { start: 450, color: COLORS.ink });
+      const tLines = days >= 1
+        ? [daysTxt, fmt.t('sin parar', 'non-stop')]
+        : [fmt.t(`${fmt.num(s.moving / 60)} minutos`, `${fmt.num(s.moving / 60)} minutes`), fmt.t('de puro running', 'of pure running')];
+      headline(f, tLines, M, y, 112, { start: 450, color: COLORS.ink });
       const pct = s.activeDays / s.daysInPeriod;
       const text = s.isPartialYear
         ? fmt.t(
@@ -370,7 +380,7 @@ export function elevationCard(env: DeckEnv): Card {
       kicker(f, fmt.t('Desnivel positivo', 'Elevation gain'), M, KICK);
       const size = 330;
       const base = heroBaseline(f, size);
-      heroNumber(f, fmt.elev(counting(f, s.elevation, 150, 1700)), fmt.elevUnit.toUpperCase(), M, base, size, { start: 100, unitScale: 0.32 });
+      heroNumber(f, fmt.elev(counting(f, s.elevation, 150, 1700)), fmt.elevUnit.toUpperCase(), M, base, size, { start: 100, unitScale: 0.32, fit: fmt.elev(s.elevation) });
       const y = base + 150;
       const hs = Math.min(112, ...lines.map((l) => fitSize(ctx, l.toUpperCase(), 'display', 112, CW)));
       headline(f, lines, M, y, hs, { start: 450, colors: [theme.fg, COLORS.orange] });
@@ -565,7 +575,7 @@ export function heartCard(env: DeckEnv): Card {
       const size = 330;
       const base = heroBaseline(f, size);
       const counted = fmt.big(counting(f, hr.beats, 150, 1700));
-      heroNumber(f, counted.unit === big.unit ? counted.value : big.value, big.unit, M, base, size, { start: 100, unitScale: 0.32 });
+      heroNumber(f, counted.unit === big.unit ? counted.value : big.value, big.unit, M, base, size, { start: 100, unitScale: 0.32, fit: big.value });
       const y = base + 150;
       headline(f, [fmt.t('latidos', 'heartbeats'), fmt.t('corriendo', 'while running')], M, y, 112, { start: 450 });
       paragraph(

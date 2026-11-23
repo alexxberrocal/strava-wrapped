@@ -159,48 +159,58 @@ export interface RichLayout {
 
 export function layoutRich(ctx: Ctx, text: string, maxWidth: number, size: number, weight = 500, hlWeight = 700, lineHeight = 1.32): RichLayout {
   const segs = parseRich(text);
-  // Tokens: palabras con su espacio, conservando el estilo.
-  const tokens: { text: string; hl: boolean; space: boolean }[] = [];
-  for (const s of segs) {
-    const pieces = s.text.split(/(\s+)/);
-    for (const p of pieces) {
-      if (!p) continue;
-      tokens.push({ text: p, hl: s.hl, space: /^\s+$/.test(p) });
+  // Tokens: palabras y espacios, conservando el estilo. Las piezas sin espacio entre medias
+  // (p. ej. "**53 maratones**." -> "maratones" + ".") forman un grupo que no se parte.
+  type Tok = { text: string; hl: boolean; space: boolean };
+  const tokens: Tok[] = [];
+  for (const sg of segs) {
+    for (const p of sg.text.split(/(\s+)/)) {
+      if (p) tokens.push({ text: p, hl: sg.hl, space: /^\s+$/.test(p) });
     }
   }
-  const lines: RichLine[] = [];
-  let cur: RichRun[] = [];
-  let x = 0;
+  const groups: (Tok[] | Tok)[] = [];
+  for (const t of tokens) {
+    const last = groups[groups.length - 1];
+    if (t.space) groups.push(t);
+    else if (Array.isArray(last)) last.push(t);
+    else groups.push([t]);
+  }
   const widthOf = (t: string, hl: boolean) => {
     setFont(ctx, 'text', size, hl ? hlWeight : weight);
     return ctx.measureText(t).width;
   };
-  for (const tok of tokens) {
-    if (tok.space) {
+  const lines: RichLine[] = [];
+  let cur: RichRun[] = [];
+  let x = 0;
+  const trimEnd = () => {
+    while (cur.length && cur[cur.length - 1].text.trim() === '') {
+      x -= cur[cur.length - 1].w;
+      cur.pop();
+    }
+  };
+  for (const g of groups) {
+    if (!Array.isArray(g)) {
       if (cur.length) {
-        const w = widthOf(' ', tok.hl);
-        cur.push({ text: ' ', hl: tok.hl, x, w });
+        const w = widthOf(' ', g.hl);
+        cur.push({ text: ' ', hl: g.hl, x, w });
         x += w;
       }
       continue;
     }
-    const w = widthOf(tok.text, tok.hl);
-    if (x + w > maxWidth && cur.length) {
-      while (cur.length && cur[cur.length - 1].text === ' ') {
-        x -= cur[cur.length - 1].w;
-        cur.pop();
-      }
+    const widths = g.map((t) => widthOf(t.text, t.hl));
+    const gw = widths.reduce((a, b) => a + b, 0);
+    if (x + gw > maxWidth && cur.length) {
+      trimEnd();
       lines.push({ runs: cur, width: x });
       cur = [];
       x = 0;
     }
-    cur.push({ text: tok.text, hl: tok.hl, x, w });
-    x += w;
+    g.forEach((t, i) => {
+      cur.push({ text: t.text, hl: t.hl, x, w: widths[i] });
+      x += widths[i];
+    });
   }
-  while (cur.length && cur[cur.length - 1].text === ' ') {
-    x -= cur[cur.length - 1].w;
-    cur.pop();
-  }
+  trimEnd();
   if (cur.length) lines.push({ runs: cur, width: x });
   const lh = size * lineHeight;
   return { lines, size, lineHeight: lh, weight, hlWeight, height: lines.length ? (lines.length - 1) * lh + size : 0 };

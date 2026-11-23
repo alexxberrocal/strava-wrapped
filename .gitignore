@@ -10,3 +10,4 @@ Thumbs.db
 scripts/cities15000.zip
 .claude/scheduled_tasks.lock
 samples/
+.claude/

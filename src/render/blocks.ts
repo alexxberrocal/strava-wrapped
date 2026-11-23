@@ -1,6 +1,6 @@
 import { ease, prog } from './anim';
 import type { Frame } from './card';
-import { COLORS, H, W, drawRich, drawTracked, layoutRich, roundRect, setFont, trackedWidth, type RichLayout } from './kit';
+import { COLORS, H, W, drawRich, drawTracked, fitSize, layoutRich, roundRect, setFont, trackedWidth, type RichLayout } from './kit';
 
 /** Color de acento para etiquetas según el tema. */
 export function accentOf(f: Frame): string {
@@ -43,16 +43,23 @@ export interface HeroOpts {
   unitScale?: number;
   align?: 'left' | 'center';
   tracking?: number;
+  /** Texto final (cuando la cifra cuenta hacia arriba) para fijar el tamaño desde el principio. */
+  fit?: string;
 }
 
 /**
  * Cifra protagonista en Anton con su unidad pequeña pegada (como "311H").
  * `y` = línea base. Devuelve el ancho total.
  */
-export function heroNumber(f: Frame, value: string, unit: string, x: number, y: number, size: number, o: HeroOpts = {}): number {
+export function heroNumber(f: Frame, value: string, unit: string, x: number, y: number, size0: number, o: HeroOpts = {}): number {
   const { ctx, theme } = f;
   const start = o.start ?? 0;
   const p = ease.outQuint(prog(f.t, start, o.dur ?? 900));
+  // Cifras muy largas (ultrafondistas): se reduce el tamaño para no salirse.
+  const maxW = o.align === 'center' ? W - 120 : W - x - 70;
+  setFont(ctx, 'display', size0);
+  const w0 = trackedWidth(ctx, o.fit ?? value, (o.tracking ?? -0.01) * size0) + (unit ? size0 * (o.unitScale ?? 0.3) * unit.length * 0.6 + size0 * 0.04 : 0);
+  const size = w0 > maxW ? Math.floor((size0 * maxW) / w0) : size0;
   setFont(ctx, 'display', size);
   const tr = (o.tracking ?? -0.01) * size;
   const wv = trackedWidth(ctx, value, tr);
@@ -75,8 +82,11 @@ export function heroNumber(f: Frame, value: string, unit: string, x: number, y: 
 }
 
 /** Titular en Anton, varias líneas que suben escalonadas. `y` = base de la primera línea. */
-export function headline(f: Frame, lines: string[], x: number, y: number, size: number, o: { color?: string; start?: number; stagger?: number; lineHeight?: number; align?: 'left' | 'center'; colors?: (string | undefined)[] } = {}) {
+export function headline(f: Frame, lines: string[], x: number, y: number, size0: number, o: { color?: string; start?: number; stagger?: number; lineHeight?: number; align?: 'left' | 'center'; colors?: (string | undefined)[]; maxWidth?: number } = {}) {
   const { ctx, theme } = f;
+  // Nunca se sale del lienzo: todas las líneas comparten el tamaño que quepa.
+  const maxW = o.maxWidth ?? (o.align === 'center' ? W - 2 * 60 : W - x - 70);
+  const size = f.memo(`hl:${lines.join('|')}:${size0}:${maxW}`, () => Math.min(size0, ...lines.map((l) => fitSize(ctx, l.toUpperCase(), 'display', size0, maxW, 400, 20, 0.005))));
   const lh = size * (o.lineHeight ?? 0.98);
   lines.forEach((line, i) => {
     const p = ease.outQuint(prog(f.t, (o.start ?? 0) + i * (o.stagger ?? 110), 850));
