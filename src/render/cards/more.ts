@@ -308,7 +308,7 @@ export function shoesCard(env: DeckEnv): Card {
         f,
         fmt.t(
           `**${top.runs} carreras** juntas: dan para **${fmt.smart(mar, mar < 10 ? 1 : 0)} maratones**.${retire ? ' Quizá va siendo hora de jubilarlas.' : ''}`,
-          `**${top.runs} runs** together: that's **${fmt.smart(mar, mar < 10 ? 1 : 0)} marathons**.${retire ? ' Maybe it is time to retire them.' : ''}`,
+          `**${top.runs} runs** together: that's **${fmt.smart(mar, mar < 10 ? 1 : 0)} marathons**.${retire ? ' Maybe it’s time to retire them.' : ''}`,
         ),
         M,
         base + 100,
