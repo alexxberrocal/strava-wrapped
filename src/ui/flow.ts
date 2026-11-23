@@ -186,8 +186,17 @@ export class Flow {
     }
   }
 
+  private setStepTitle(key: 'step3.title' | 'step3.ready') {
+    const el = document.getElementById('step3-title');
+    if (el) {
+      el.dataset.i18n = key;
+      el.textContent = tr(key);
+    }
+  }
+
   private renderSetup() {
     const ds = this.dataset!, s = this.settings!, p = this.pipeline!;
+    this.setStepTitle('step3.ready');
     const hello = h('h3', { class: 'panel__title' }, s.name ? tr('flow.hello', { name: s.name }) : tr('flow.helloAnon'));
     this.summaryEl = h('p', { class: 'panel__sub' }, tr('flow.scanned', { n: new Fmt(siteLang(), s.units).num(ds.scan.csv.activities.length) }));
     this.warnEl = h('p', { class: 'panel__error', hidden: true });
@@ -271,21 +280,27 @@ export class Flow {
   }
 
   // ------------------------------------------------------------ Historia
-  private async play() {
+  private async build(): Promise<Built | null> {
     const p = this.pipeline, s = this.settings, yd = this.yearData;
-    if (!p || !s || !yd || !yd.runs.length) return;
+    if (!p || !s || !yd || !yd.runs.length) return null;
+    const lang = siteLang();
+    const stats = p.wrapped(s.year, yd.runs, yd.others, { name: s.name, lang, trimMeters: s.trim ? PRIVACY_TRIM_METERS : 0 }, s.runTypes);
+    const [, countries, photos] = await Promise.all([
+      ensureFonts(s.name),
+      loadCountries().catch(() => null),
+      stats.photos.length >= 3 ? withTimeout(p.photos(stats.photos, 5), 6000, [] as ImageBitmap[]) : Promise.resolve([] as ImageBitmap[]),
+    ]);
+    const env: DeckEnv = { fmt: new Fmt(lang, s.units), stats, countries, photos, brand: BRAND.name, domain: BRAND.domain };
+    const cards = buildDeck(env, { cityMap: s.cityMap });
+    return { stats, cards, painter: new CardPainter(env), demo: false };
+  }
+
+  private async play() {
     if (this.goBtn) this.goBtn.disabled = true;
     try {
-      const lang = siteLang();
-      const stats = p.wrapped(s.year, yd.runs, yd.others, { name: s.name, lang, trimMeters: s.trim ? PRIVACY_TRIM_METERS : 0 }, s.runTypes);
-      const [, countries, photos] = await Promise.all([
-        ensureFonts(s.name),
-        loadCountries().catch(() => null),
-        stats.photos.length >= 3 ? withTimeout(p.photos(stats.photos, 5), 6000, [] as ImageBitmap[]) : Promise.resolve([] as ImageBitmap[]),
-      ]);
-      const env: DeckEnv = { fmt: new Fmt(lang, s.units), stats, countries, photos, brand: BRAND.name, domain: BRAND.domain };
-      const cards = buildDeck(env, { cityMap: s.cityMap });
-      this.built = { stats, cards, painter: new CardPainter(env), demo: false };
+      const built = await this.build();
+      if (!built) return;
+      this.built = built;
       this.openStory(0);
     } catch (err) {
       console.error(err);
@@ -293,6 +308,23 @@ export class Flow {
     } finally {
       if (this.goBtn) this.goBtn.disabled = false;
     }
+  }
+
+  /** Solo desarrollo: pinta todas las tarjetas (estado final) en una capa para revisarlas. */
+  async debugStills(width = 200): Promise<string[]> {
+    const built = await this.build();
+    if (!built) return [];
+    this.built = built;
+    document.getElementById('debug-stills')?.remove();
+    const wrap = h('div', { id: 'debug-stills', style: 'position:fixed;inset:0;z-index:99;overflow:auto;background:#222;display:flex;flex-wrap:wrap;gap:8px;padding:8px;align-content:flex-start' });
+    for (const card of built.cards) {
+      const c = h('canvas', { title: card.id });
+      paintThumb(built.painter, card, c, width);
+      c.style.width = `${width}px`;
+      wrap.append(c);
+    }
+    document.body.append(wrap);
+    return built.cards.map((c) => c.id);
   }
 
   /** Historia de ejemplo con el atleta de demo. */
@@ -407,6 +439,7 @@ export class Flow {
 
   resetToDrop() {
     this.reset();
+    this.setStepTitle('step3.title');
     this.flowEl.innerHTML = this.dropHTML;
     applySiteLang(this.flowEl);
     this.bindDrop();

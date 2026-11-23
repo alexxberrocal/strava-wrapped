@@ -1,4 +1,5 @@
-import { EFFORT_TARGETS } from '../parse/track';
+import { EFFORT_TARGETS, haversine } from '../parse/track';
+import type { Goal, PrivacyZone } from '../parse/extras';
 import type { SportCategory } from '../parse/sports';
 import { daysInYear, jan1Dow, localTimeOf, weekIndex } from './time';
 import type { Activity, ArchetypeKey, LocalTime, Place, RunRef, TimeOfDay, WrappedStats } from './types';
@@ -14,37 +15,53 @@ export interface ComputeInput {
   periodEnd: LocalTime | null;
   /** Metros a recortar al inicio/fin de cada ruta (privacidad). 0 = no recortar. */
   trimMeters: number;
+  /** Datos extra del export ya filtrados para el año. */
+  extras?: {
+    kudos: number | null;
+    challenges: number | null;
+    goals: Goal[];
+    zones: PrivacyZone[];
+  };
 }
 
 const finite = (x: number) => Number.isFinite(x);
 
 /** Recorta inicio y fin de una ruta (interpolando) para no mostrar dónde vives. */
-export function trimTrack(track: Float32Array, cum: Float32Array | null, meters: number): Float32Array | null {
+export function trimTrack(track: Float32Array, cum: Float32Array | null, meters: number, zones: PrivacyZone[] = []): Float32Array | null {
   const n = track.length / 2;
   if (n < 2) return null;
-  if (!meters || !cum || cum.length !== n) return track;
-  const total = cum[n - 1];
-  if (!(total > 0)) return null;
-  const cut = Math.min(meters, total * 0.2);
-  const startD = cut;
-  const endD = total - cut;
+  // Zonas de privacidad de Strava: se quita el tramo inicial/final que cae dentro.
+  let first = 0, last = n - 1;
+  if (zones.length) {
+    const inside = (i: number) => zones.some((z) => haversine(track[i * 2], track[i * 2 + 1], z.lat, z.lon) <= z.radius);
+    while (first < n && inside(first)) first++;
+    while (last > first && inside(last)) last--;
+    if (last - first < 1) return null;
+  }
+  if ((!meters || !cum || cum.length !== n) && first === 0 && last === n - 1) return track;
+  if (!cum || cum.length !== n) return track.slice(first * 2, (last + 1) * 2);
+  const span = cum[last] - cum[first];
+  if (!(span > 0)) return null;
+  const cut = Math.min(meters, span * 0.2);
+  const startD = cum[first] + cut;
+  const endD = cum[last] - cut;
   const at = (i: number, d: number): [number, number] => {
     const d0 = cum[i], d1 = cum[i + 1];
     const f = d1 > d0 ? Math.max(0, Math.min(1, (d - d0) / (d1 - d0))) : 0;
     return [track[i * 2] + (track[i * 2 + 2] - track[i * 2]) * f, track[i * 2 + 1] + (track[i * 2 + 3] - track[i * 2 + 1]) * f];
   };
   const out: number[] = [];
-  let i = 0;
+  let i = first;
   while (i < n - 2 && cum[i + 1] < startD) i++;
   out.push(...at(i, startD));
   for (let k = i + 1; k < n && cum[k] < endD; k++) if (cum[k] > startD) out.push(track[k * 2], track[k * 2 + 1]);
-  let j = n - 2;
+  let j = Math.min(n - 2, last);
   while (j > 0 && cum[j] > endD) j--;
   out.push(...at(j, endD));
   return out.length >= 4 ? new Float32Array(out) : null;
 }
 
-function refOf(a: Activity, trimMeters: number): RunRef {
+function refOf(a: Activity, trimMeters: number, zones: PrivacyZone[] = []): RunRef {
   const t = a.track;
   return {
     id: a.id,
@@ -58,7 +75,7 @@ function refOf(a: Activity, trimMeters: number): RunRef {
     avgHr: finite(a.csv.avgHr) ? a.csv.avgHr : t && finite(t.avgHr) ? t.avgHr : NaN,
     country: a.country,
     cityName: a.city?.name ?? null,
-    track: t?.track ? trimTrack(t.track, t.trackCum, trimMeters) : null,
+    track: t?.track ? trimTrack(t.track, t.trackCum, trimMeters, zones) : null,
   };
 }
 
@@ -90,7 +107,8 @@ export function timeOfDayOf(h: number): TimeOfDay {
 export function computeStats(input: ComputeInput): WrappedStats {
   const { year, trimMeters } = input;
   const runs = [...input.runs].sort((a, b) => a.startUtc - b.startUtc);
-  const ref = (a: Activity) => refOf(a, trimMeters);
+  const zones = input.extras?.zones ?? [];
+  const ref = (a: Activity) => refOf(a, trimMeters, zones);
   const totalDays = daysInYear(year);
 
   // ---- Totales ----
@@ -320,7 +338,7 @@ export function computeStats(input: ComputeInput): WrappedStats {
     const tracks: Float32Array[] = [];
     let dist = 0;
     for (const r of members) {
-      const t = trimTrack(r.track!.track!, r.track!.trackCum, trimMeters);
+      const t = trimTrack(r.track!.track!, r.track!.trackCum, trimMeters, zones);
       if (t) tracks.push(t);
       dist += r.csv.distance;
     }
@@ -337,7 +355,7 @@ export function computeStats(input: ComputeInput): WrappedStats {
   }
   const routes: WrappedStats['routes'] = [];
   for (const r of gpsActs) {
-    const t = trimTrack(r.track!.track!, r.track!.trackCum, trimMeters);
+    const t = trimTrack(r.track!.track!, r.track!.trackCum, trimMeters, zones);
     if (t && t.length >= 8) routes.push({ id: r.id, track: t, distance: r.csv.distance });
   }
 
@@ -389,6 +407,35 @@ export function computeStats(input: ComputeInput): WrappedStats {
     otherMap.set(key, e);
   }
   const others = [...otherMap.values()].sort((a, b) => b.moving - a.moving);
+
+  // ---- Objetivo de distancia (goals.csv) ----
+  let goal: WrappedStats['goal'] = null;
+  const goals = (input.extras?.goals ?? []).filter((g) => g.kind === 'distance' && g.running && g.period).sort((a, b) => (b.startUtc || 0) - (a.startUtc || 0));
+  const g0 = goals[0];
+  if (g0 && g0.period) {
+    const startDoy = Number.isFinite(g0.startUtc) && new Date(g0.startUtc).getUTCFullYear() === year ? localTimeOf(g0.startUtc, 0).doy : 0;
+    if (Number.isFinite(g0.startUtc) && new Date(g0.startUtc).getUTCFullYear() > year) {
+      /* objetivo posterior a este año */
+    } else if (g0.period === 'week') {
+      const firstW = weekIndex(year, startDoy);
+      let hit = 0, total = 0;
+      for (let w = firstW; w < weeksInPeriod; w++) {
+        total++;
+        if ((weekDist.get(w) ?? 0) >= g0.value) hit++;
+      }
+      if (total > 0) goal = { period: 'week', target: g0.value, hit, total };
+    } else if (g0.period === 'month') {
+      const firstM = localTimeOf(Date.UTC(year, 0, 1) + startDoy * 86400000, 0).mo - 1;
+      let hit = 0, total = 0;
+      for (let m = firstM; m <= periodEnd.mo - 1; m++) {
+        total++;
+        if (months[m].distance >= g0.value) hit++;
+      }
+      if (total > 0) goal = { period: 'month', target: g0.value, hit, total };
+    } else {
+      goal = { period: 'year', target: g0.value, hit: distance, total: g0.value };
+    }
+  }
 
   const stats: WrappedStats = {
     year,
@@ -446,6 +493,9 @@ export function computeStats(input: ComputeInput): WrappedStats {
     others,
     prev: input.prev,
     archetype: { key: 'allrounder', runnerUp: null },
+    kudos: input.extras?.kudos ?? null,
+    challenges: input.extras?.challenges ?? null,
+    goal,
   };
   stats.archetype = pickArchetype(stats);
   return stats;

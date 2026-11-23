@@ -2,7 +2,7 @@ import { geoInterpolate, geoMercator, geoPath } from 'd3-geo';
 import { ease, prog } from '../anim';
 import { counting, fadeUp, headline, heroNumber, kicker, paragraph, pill, ribbon } from '../blocks';
 import type { Card, DeckEnv, Frame } from '../card';
-import { COLORS, CW, H, M, W, capRatio, cumulative, drawTracked, fitRoute, fitSize, roundRect, setFont, type Box } from '../kit';
+import { COLORS, CW, H, M, W, capRatio, cumulative, drawTracked, fitRoute, fitSize, roundRect, setFont, trackedWidth, type Box } from '../kit';
 import { EARTH_KM, MARATHON_M, pickDestination, pickLandmark } from '../../stats/equivalences';
 import { localFromDoy, daysInYear } from '../../stats/time';
 
@@ -167,8 +167,8 @@ export function distanceCard(env: DeckEnv): Card {
           ctx.arc(ex, ey, 26 * pEnd, 0, Math.PI * 2);
           ctx.stroke();
           ctx.restore();
-          labelAt(f, homeName!.toUpperCase(), geo.pts[0], geo.pts[1], COLORS.paper, pMap);
-          labelAt(f, dest.name.toUpperCase(), ex, ey, COLORS.orange, pEnd);
+          labelAt(f, homeName!.toUpperCase(), geo.pts[0], geo.pts[1], COLORS.paper, pMap, box);
+          labelAt(f, dest.name.toUpperCase(), ex, ey, COLORS.orange, pEnd, box);
         }
       } else {
         // Sin mapa: barra de progreso de la vuelta al mundo.
@@ -187,24 +187,30 @@ export function distanceCard(env: DeckEnv): Card {
           drawTracked(ctx, '40.075 KM', W - M, 1580, 4, 'right');
         });
       }
-      if (s.prev && s.prev.distance > 0) {
+      // Solo celebramos: la comparación con el año anterior aparece si has corrido más.
+      if (s.prev && s.prev.distance > 0 && s.distance / s.prev.distance - 1 >= 0.03) {
         const delta = s.distance / s.prev.distance - 1;
-        const label = `${delta >= 0 ? '+' : '−'}${fmt.num(Math.abs(delta) * 100, 0)}% VS ${s.prev.year}`;
-        pill(f, label, W - M, KICK - 44, { bg: COLORS.orange, fg: COLORS.ink, size: 26, start: 2000, align: 'right' });
+        pill(f, `+${fmt.num(delta * 100, 0)}% VS ${s.prev.year}`, W - M, KICK - 44, { bg: COLORS.orange, fg: COLORS.ink, size: 26, start: 2000, align: 'right' });
       }
     },
   };
 }
 
-function labelAt(f: Frame, text: string, x: number, y: number, color: string, alpha: number) {
+function labelAt(f: Frame, text: string, x: number, y: number, color: string, alpha: number, box?: Box) {
   if (alpha <= 0) return;
   const { ctx } = f;
   ctx.save();
   ctx.globalAlpha *= alpha;
   setFont(ctx, 'text', 24, 800);
   ctx.fillStyle = color;
-  const right = x > W * 0.62;
-  drawTracked(ctx, text, right ? x - 36 : x + 36, y + 8, 3, right ? 'right' : 'left');
+  const w = trackedWidth(ctx, text, 3);
+  const minX = (box?.x ?? M) + 18, maxX = (box ? box.x + box.w : W - M) - 18;
+  // A la derecha del punto si cabe; si no, a la izquierda; y siempre dentro del mapa.
+  let left = x + 36;
+  if (left + w > maxX) left = x - 36 - w;
+  left = Math.max(minX, Math.min(maxX - w, left));
+  const ty = y + 8 + (left < x && left + w > x - 20 ? 40 : 0);
+  drawTracked(ctx, text, left, ty, 3, 'left');
   ctx.restore();
 }
 
@@ -418,19 +424,11 @@ export function elevationCard(env: DeckEnv): Card {
         if (appear <= 0) continue;
         ctx.save();
         ctx.globalAlpha = appear;
-        const path = new Path2D();
-        path.moveTo(px, baseY);
-        path.lineTo(px + pw * 0.38, baseY - h * 0.62);
-        path.lineTo(px + pw * 0.46, baseY - h * 0.55);
-        path.lineTo(px + pw * 0.58, baseY - h);
-        path.lineTo(px + pw * 0.74, baseY - h * 0.7);
-        path.lineTo(px + pw * 0.82, baseY - h * 0.76);
-        path.lineTo(px + pw, baseY);
-        path.closePath();
+        const path = landmarkPath(lm.landmark.key, px, pw, baseY, h);
         ctx.fillStyle = 'rgba(18,18,18,0.06)';
-        ctx.fill(path);
+        ctx.fill(path, 'evenodd');
         ctx.save();
-        ctx.clip(path);
+        ctx.clip(path, 'evenodd');
         const level = baseY - h * frac * fill;
         ctx.fillStyle = i < full ? COLORS.orange : COLORS.orangeSoft;
         ctx.fillRect(px - 10, level, pw + 20, baseY - level + 10);
@@ -492,7 +490,7 @@ export function paceCard(env: DeckEnv): Card {
       const lines = improved
         ? [fmt.t(`${deltaS} segundos`, `${deltaS} seconds`), fmt.t(`más rápido`, `faster`)]
         : slower
-          ? [fmt.t('Más kilómetros,', 'More miles,'), fmt.t('más calma', 'more calm')]
+          ? [fmt.t('Disfrutando', 'Enjoying'), fmt.t(fmt.imperial ? 'cada milla' : 'cada kilómetro', fmt.imperial ? 'every mile' : 'every kilometre')]
           : [fmt.t('Constante', 'Steady'), fmt.t('como un reloj', 'as a clock')];
       headline(f, lines, M, y, 112, { start: 450, color: COLORS.ink });
       const parts: string[] = [];
@@ -620,4 +618,44 @@ export function heartCard(env: DeckEnv): Card {
       });
     },
   };
+}
+
+/** Silueta del monumento: montaña, rascacielos (Burj Khalifa) o torre (Eiffel). */
+function landmarkPath(key: string, px: number, pw: number, baseY: number, h: number): Path2D {
+  const p = new Path2D();
+  const cx = px + pw / 2;
+  if (key === 'burj') {
+    const w = pw * 0.36;
+    const steps: [number, number][] = [[0.5, 0], [0.5, 0.32], [0.36, 0.32], [0.36, 0.56], [0.23, 0.56], [0.23, 0.74], [0.11, 0.74], [0.11, 0.88], [0.02, 0.88], [0, 1]];
+    p.moveTo(cx - w * steps[0][0], baseY);
+    for (const [k, y] of steps) p.lineTo(cx - w * k, baseY - h * y);
+    for (const [k, y] of [...steps].reverse()) p.lineTo(cx + w * k, baseY - h * y);
+    p.closePath();
+    return p;
+  }
+  if (key === 'eiffel') {
+    const w = pw * 0.62;
+    p.moveTo(cx - w / 2, baseY);
+    p.quadraticCurveTo(cx - w * 0.12, baseY - h * 0.35, cx - w * 0.06, baseY - h * 0.72);
+    p.lineTo(cx - w * 0.015, baseY - h * 0.94);
+    p.lineTo(cx, baseY - h);
+    p.lineTo(cx + w * 0.015, baseY - h * 0.94);
+    p.lineTo(cx + w * 0.06, baseY - h * 0.72);
+    p.quadraticCurveTo(cx + w * 0.12, baseY - h * 0.35, cx + w / 2, baseY);
+    p.closePath();
+    // Arco entre las patas (se recorta con la regla par-impar).
+    p.moveTo(cx - w * 0.3, baseY);
+    p.quadraticCurveTo(cx, baseY - h * 0.3, cx + w * 0.3, baseY);
+    p.closePath();
+    return p;
+  }
+  p.moveTo(px, baseY);
+  p.lineTo(px + pw * 0.38, baseY - h * 0.62);
+  p.lineTo(px + pw * 0.46, baseY - h * 0.55);
+  p.lineTo(px + pw * 0.58, baseY - h);
+  p.lineTo(px + pw * 0.74, baseY - h * 0.7);
+  p.lineTo(px + pw * 0.82, baseY - h * 0.76);
+  p.lineTo(px + pw, baseY);
+  p.closePath();
+  return p;
 }

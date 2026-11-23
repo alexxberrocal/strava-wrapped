@@ -174,7 +174,7 @@ export class Pipeline {
         tz: p.tz ?? null,
         local: localTimeOf(startUtc, offset),
         track: p.track,
-        country: p.start && countries ? countries.lookup(p.start[0], p.start[1]) : null,
+        country: p.start ? ((countries?.lookup(p.start[0], p.start[1]) ?? null) || (cities?.nearestCountry(p.start[0], p.start[1]) ?? null)) : null,
         city: p.start && cities ? cities.locate(p.start[0], p.start[1]) : null,
         indoor: !p.start,
       });
@@ -201,6 +201,9 @@ export class Pipeline {
     const exp = this.data.scan.exportDate;
     const tz = this.homeTz(runs);
     const periodEnd = exp ? localTimeOf(exp, tz ? (offsetMinutes(tz, exp) ?? 0) : 0) : null;
+    const ex = this.data.scan.extras;
+    const kudos = ex?.kudosByYear?.[year] ?? null;
+    const done = ex?.challenges?.filter((c) => c.completed && new Date(c.joinUtc).getUTCFullYear() === year).length ?? 0;
     return computeStats({
       year,
       name: opts.name,
@@ -210,6 +213,12 @@ export class Pipeline {
       prev: this.previousYear(year, runTypes),
       periodEnd,
       trimMeters: opts.trimMeters,
+      extras: {
+        kudos: kudos && kudos > 0 ? kudos : null,
+        challenges: done > 0 ? done : null,
+        goals: ex?.goals ?? [],
+        zones: opts.trimMeters > 0 ? (ex?.privacyZones ?? []) : [],
+      },
     });
   }
 

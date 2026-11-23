@@ -4,6 +4,8 @@ import { decodeFit, isFit } from '../parse/fit';
 import { decodeGpx, decodeTcx } from '../parse/gpx';
 import { summarizeTrack, type TrackSummary } from '../parse/track';
 import type { DecodedTrack } from '../parse/decoded';
+import { emptyExtras, parseChallenges, parseGoals, parsePrivacyZones, parseReactions, type Extras } from '../parse/extras';
+import { inferNumericOrder } from '../parse/dates';
 
 export interface ScanResult {
   csv: CsvParseResult;
@@ -12,6 +14,7 @@ export interface ScanResult {
   exportDate: number | null;
   fileCount: number;
   activityFileCount: number;
+  extras: Extras;
 }
 
 export interface TrackJob {
@@ -59,12 +62,28 @@ export class ParserCore {
       }
     }
     const files = a.list('activities/');
+    // Extras opcionales: si algo falla, se ignora sin romper nada.
+    const extras = emptyExtras();
+    const order = inferNumericOrder([], csv.headerLanguage === 'en');
+    const optional = async (name: string, fn: (text: string) => void) => {
+      if (!a.has(name)) return;
+      try {
+        fn(await a.text(name));
+      } catch {
+        /* sin este dato */
+      }
+    };
+    await optional('reactions.csv', (t) => (extras.kudosByYear = parseReactions(t, order)));
+    await optional('global_challenges.csv', (t) => (extras.challenges = parseChallenges(t, order)));
+    await optional('goals.csv', (t) => (extras.goals = parseGoals(t, order)));
+    await optional('privacy_zones.csv', (t) => (extras.privacyZones = parsePrivacyZones(t)));
     return {
       csv,
       firstName,
       exportDate: a.modified('activities.csv'),
       fileCount: a.list('').length,
       activityFileCount: files.length,
+      extras,
     };
   }
 

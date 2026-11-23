@@ -82,7 +82,7 @@
             </article>
             <article class="step step--drop" id="crear">
               <span class="step__num">03</span>
-              <h3 data-i18n="step3.title">Suéltalo aquí</h3>
+              <h3 id="step3-title" data-i18n="step3.title">Suéltalo aquí</h3>
               <div class="flow" id="flow">
                 <label class="drop" id="drop" tabindex="0">
                   <input type="file" id="file-input" accept=".zip,application/zip,application/x-zip-compressed,.csv,text/csv" hidden />
@@ -104,6 +104,19 @@
         </div>
       </section>
 
+      <section class="results" id="results" hidden>
+        <div class="wrap">
+          <p class="kicker" id="results-kicker"></p>
+          <h2 class="section-title" data-i18n-html="results.title">Todas tus<br />pantallas</h2>
+          <div class="results__actions">
+            <button type="button" class="btn btn--primary" id="results-play"><span data-i18n="results.replay">Ver la historia</span></button>
+            <button type="button" class="btn btn--ghost" id="results-zip"><span data-i18n="results.zip">Descargar todas (.zip)</span></button>
+            <button type="button" class="btn btn--ghost" id="results-settings"><span data-i18n="results.settings">Cambiar ajustes</span></button>
+          </div>
+          <p class="results__hint" data-i18n="results.hint"></p>
+          <div class="results__grid" id="results-grid"></div>
+        </div>
+      </section>
       <section class="gallery">
         <div class="wrap">
           <p class="kicker" data-i18n="gallery.kicker">Lo que vas a ver</p>
@@ -127,19 +140,6 @@
         </div>
       </section>
 
-      <section class="results" id="results" hidden>
-        <div class="wrap">
-          <p class="kicker" id="results-kicker"></p>
-          <h2 class="section-title" data-i18n-html="results.title">Todas tus<br />pantallas</h2>
-          <div class="results__actions">
-            <button type="button" class="btn btn--primary" id="results-play"><span data-i18n="results.replay">Ver la historia</span></button>
-            <button type="button" class="btn btn--ghost" id="results-zip"><span data-i18n="results.zip">Descargar todas (.zip)</span></button>
-            <button type="button" class="btn btn--ghost" id="results-settings"><span data-i18n="results.settings">Cambiar ajustes</span></button>
-          </div>
-          <p class="results__hint" data-i18n="results.hint"></p>
-          <div class="results__grid" id="results-grid"></div>
-        </div>
-      </section>
     </main>
 
     <footer class="footer">

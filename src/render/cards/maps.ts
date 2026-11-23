@@ -42,16 +42,18 @@ export function heatmapCard(env: DeckEnv): Card {
         { start: 450 },
       );
       const proj = f.memo('proj', () => {
-        const pr = projectRoutes(home.tracks, box, { lo: 0.02, hi: 0.98, pad: 0.04 });
+        // Encuadre en el núcleo: las tiradas largas hacia otros pueblos no encogen la ciudad.
+        const tight = n >= 15;
+        const pr = projectRoutes(home.tracks, box, { lo: tight ? 0.05 : 0.02, hi: tight ? 0.95 : 0.98, pad: 0.05 });
         return { paths: pr.paths, cums: pr.paths.map((p) => cumulative(p)), k: pr.k };
       });
       // Dibujo progresivo con capa acumulada (las rutas terminadas se "hornean").
-      const lw = Math.max(1.6, Math.min(3.6, 4.5 - Math.log10(Math.max(1, n)) * 1.2));
-      const alpha = Math.max(0.2, Math.min(0.6, 1.8 / Math.sqrt(Math.max(1, n)) + 0.1));
-      const style = (g: Ctx) => {
+      const lw = Math.max(2, Math.min(4.2, 5.2 - Math.log10(Math.max(1, n)) * 1.35));
+      const alpha = Math.max(0.2, Math.min(0.7, 2.2 / Math.sqrt(Math.max(1, n)) + 0.12));
+      const style = (g: Ctx, glow = false) => {
         g.globalCompositeOperation = 'lighter';
-        g.strokeStyle = `rgba(252,90,24,${alpha.toFixed(3)})`;
-        g.lineWidth = lw;
+        g.strokeStyle = `rgba(252,90,24,${(glow ? alpha * 0.16 : alpha).toFixed(3)})`;
+        g.lineWidth = glow ? lw * 3.4 : lw;
         g.lineCap = 'round';
         g.lineJoin = 'round';
       };
@@ -67,9 +69,11 @@ export function heatmapCard(env: DeckEnv): Card {
       const g = baked.canvas.getContext('2d')!;
       g.setTransform(f.scale, 0, 0, f.scale, 0, 0);
       g.save();
-      style(g);
       while (baked.upTo < n && doneAt(baked.upTo) <= f.t) {
         traceFull(g, proj.paths[baked.upTo]);
+        style(g, true);
+        g.stroke();
+        style(g);
         g.stroke();
         baked.upTo++;
       }
@@ -78,13 +82,15 @@ export function heatmapCard(env: DeckEnv): Card {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       ctx.drawImage(baked.canvas, 0, 0, W, H);
-      style(ctx);
       for (let i = baked.upTo; i < n; i++) {
         const st = startAt(i);
         if (st > f.t) break;
         const p = ease.inOutSine(prog(f.t, st, 650));
         const cum = proj.cums[i];
         tracePartial(ctx, proj.paths[i], cum, cum[cum.length - 1] * p);
+        style(ctx, true);
+        ctx.stroke();
+        style(ctx);
         ctx.stroke();
       }
       ctx.restore();
@@ -313,16 +319,20 @@ export function countriesCard(env: DeckEnv): Card {
   const byCode = new Map<string, CountryFeature>();
   for (const feat of countries?.features ?? []) if (feat.id) byCode.set(feat.id as string, feat);
   const clusters = clusterPlaces(s.places);
-  const mainBox: Box = { x: M, y: 640, w: CW, h: 780 };
   const panels: MapPanel[] = [];
+  const codes = (cl: Place[]) => [...new Set(cl.map((p) => p.country).filter((c): c is string => !!c))];
+  const extra = clusters.slice(1).filter((cl) => cl.some((p) => p.country)).slice(0, 3);
+  // Con lugares lejanos (otro continente), el mapa principal se acorta y van recuadros debajo.
+  const mainBox: Box = { x: M, y: 640, w: CW, h: extra.length ? 560 : 780 };
   if (clusters.length) {
-    const codes = (cl: Place[]) => [...new Set(cl.map((p) => p.country).filter((c): c is string => !!c))];
     panels.push({ box: mainBox, places: clusters[0], codes: codes(clusters[0]) });
-    clusters.slice(1, 3).forEach((cl, i) => {
-      const w = 290, h = 250, gap = 22;
-      panels.push({ box: { x: mainBox.x + mainBox.w - 24 - (i + 1) * w - i * gap, y: mainBox.y + mainBox.h - h - 24, w, h }, places: cl, codes: codes(cl) });
+    const gap = 20;
+    const iw = (CW - gap * (extra.length - 1)) / Math.max(1, extra.length);
+    extra.forEach((cl, i) => {
+      panels.push({ box: { x: M + i * (iw + gap), y: mainBox.y + mainBox.h + gap, w: iw, h: 220 }, places: cl, codes: codes(cl) });
     });
   }
+  const mapBottom = mainBox.y + mainBox.h + (extra.length ? 20 + 220 : 0);
   const visited = new Set(s.countries.map((c) => c.code));
   return {
     id: 'countries',
@@ -441,8 +451,9 @@ export function countriesCard(env: DeckEnv): Card {
         });
       });
       // Lista
-      const listY = mainBox.y + mainBox.h + 80;
-      const rows = oneCountry ? s.cities.slice(0, 4).map((c) => ({ n: c.runs, label: c.name })) : s.countries.slice(0, 4).map((c) => ({ n: c.runs, label: fmt.country(c.code) }));
+      const listY = mapBottom + 80;
+      const maxRows = 6;
+      const rows = oneCountry ? s.cities.slice(0, maxRows).map((c) => ({ n: c.runs, label: c.name })) : s.countries.slice(0, maxRows).map((c) => ({ n: c.runs, label: fmt.country(c.code) }));
       rows.forEach((row, i) => {
         fadeUp(f, 1700 + i * 110, () => {
           const col = i % 2, line = Math.floor(i / 2);
@@ -467,7 +478,8 @@ export function countriesCard(env: DeckEnv): Card {
             `Y ${fmt.num(s.indoorRuns)} ${fmt.plural(s.indoorRuns, 'carrera', 'carreras')} sin GPS (cinta o interior).`,
             `Plus ${fmt.num(s.indoorRuns)} ${fmt.plural(s.indoorRuns, 'run', 'runs')} without GPS (treadmill or indoors).`,
           );
-          ctx.fillText(t, M, listY + Math.ceil(Math.min(4, rows.length) / 2) * 78 + 20);
+          const noteY = listY + Math.ceil(rows.length / 2) * 78 + 20;
+          if (noteY < 1790) ctx.fillText(t, M, noteY);
         });
       }
     },

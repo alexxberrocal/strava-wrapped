@@ -115,8 +115,9 @@ void refreshDemo();
 if (import.meta.env.DEV) {
   (window as unknown as Record<string, unknown>).__flow = flow;
   // /?sample carga el export de prueba (npm run sample) para probar el flujo completo.
-  if (new URLSearchParams(location.search).has('sample')) {
-    void fetch('./__sample.zip')
+  const sample = new URLSearchParams(location.search).get('sample');
+  if (sample != null) {
+    void fetch(`./__sample.zip${sample ? `?name=${encodeURIComponent(sample)}` : ''}`)
       .then((r) => (r.ok ? r.blob() : Promise.reject(new Error('npm run sample'))))
       .then((b) => {
         document.getElementById('crear')?.scrollIntoView();

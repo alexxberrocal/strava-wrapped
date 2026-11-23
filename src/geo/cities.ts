@@ -44,6 +44,20 @@ export class Cities {
     return out;
   }
 
+  /** País de la ciudad conocida más cercana (respaldo para islas que no salen en el mapa de fronteras). */
+  nearestCountry(lat: number, lon: number, maxKm = 250): string | null {
+    let best: City | null = null;
+    let bestD = Infinity;
+    for (const c of this.around(lat, lon, 3)) {
+      const d = distKm(lat, lon, c.lat, c.lon);
+      if (d < bestD) {
+        bestD = d;
+        best = c;
+      }
+    }
+    return best && bestD <= maxKm ? best.cc : null;
+  }
+
   /**
    * Ciudad "a la que pertenece" un punto: distancia relativa al tamaño de la ciudad, para que
    * un barrio de Madrid sea Madrid y no el pueblo de al lado.

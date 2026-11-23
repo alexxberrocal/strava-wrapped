@@ -15,8 +15,8 @@ compartir en Instagram (imagen o vídeo).
 
 ## Cómo funciona (para quien la usa)
 
-1. En **strava.com** → Ajustes → Mi cuenta → *Descarga o eliminación de tu cuenta* → Comenzar →
-   **Solicitar tu archivo** (no borra nada).
+1. En **strava.com** → tu foto → Configuración → Mi cuenta → *Descarga tu cuenta* → Comenzar →
+   **Solicitar descarga** (no borra nada; una vez por semana).
 2. Strava envía por email un enlace al `export_XXXXXXXX.zip` (minutos u horas).
 3. Se suelta el `.zip` en la web (o la carpeta, si el móvil lo descomprimió) y listo.
 

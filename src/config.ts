@@ -4,8 +4,11 @@ export const BRAND = {
   name: 'RUNRECAP',
   /** Dominio que se imprime como marca de agua en las imágenes y vídeos compartidos. */
   domain: 'runrecap.app',
-  /** Enlace directo a la página de Strava donde se solicita el archivo. */
-  stravaExportUrl: 'https://www.strava.com/athlete/delete_your_account',
+  /**
+   * Página de Strava donde se pide el archivo ("Descarga tu cuenta" → "Solicitar descarga").
+   * Ojo: /athlete/delete_your_account es ahora la de ELIMINAR la cuenta.
+   */
+  stravaExportUrl: 'https://www.strava.com/athlete/download_my_account',
 };
 
 /** Distancia (m) que se recorta al principio y al final de cada ruta para no revelar tu casa. */

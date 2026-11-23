@@ -175,6 +175,16 @@ export function layoutRich(ctx: Ctx, text: string, maxWidth: number, size: numbe
     else if (Array.isArray(last)) last.push(t);
     else groups.push([t]);
   }
+  // "56 km", "152 m", "154 ppm": el número y su unidad nunca se separan.
+  const UNIT = /^(km|mi|m|ft|h|min|ppm|bpm|kcal|°c|°f)[.,;:!?)]*$/i;
+  for (let i = 1; i < groups.length - 1; i++) {
+    const prev = groups[i - 1], sp = groups[i], next = groups[i + 1];
+    if (Array.isArray(prev) && !Array.isArray(sp) && Array.isArray(next) && /\d$/.test(prev[prev.length - 1].text) && UNIT.test(next[0].text)) {
+      prev.push(sp, ...next);
+      groups.splice(i, 2);
+      i--;
+    }
+  }
   const widthOf = (t: string, hl: boolean) => {
     setFont(ctx, 'text', size, hl ? hlWeight : weight);
     return ctx.measureText(t).width;

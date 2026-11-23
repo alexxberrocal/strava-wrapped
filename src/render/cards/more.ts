@@ -39,7 +39,26 @@ export function calendarCard(env: DeckEnv): Card {
         ));
       }
       const idle = s.weeksInPeriod - s.activeWeeks;
-      parts.push(
+      const g = s.goal;
+      if (g) {
+        const target = fmt.distWithUnit(g.target, g.target % 1000 === 0 || g.target >= 100000 ? 0 : 1);
+        if (g.period === 'week')
+          parts.push(fmt.t(
+            `Tu objetivo de **${target} por semana**: cumplido **${g.hit} de ${g.total} semanas**.`,
+            `Your goal of **${target} a week**: hit in **${g.hit} of ${g.total} weeks**.`,
+          ));
+        else if (g.period === 'month')
+          parts.push(fmt.t(
+            `Tu objetivo de **${target} al mes**: cumplido **${g.hit} de ${g.total} meses**.`,
+            `Your goal of **${target} a month**: hit in **${g.hit} of ${g.total} months**.`,
+          ));
+        else {
+          const pct = g.hit / g.total;
+          parts.push(pct >= 1
+            ? fmt.t(`Tu objetivo anual de **${target}**: ¡**cumplido**!`, `Your yearly goal of **${target}**: **done**!`)
+            : fmt.t(`Tu objetivo anual de **${target}**: vas por el **${fmt.pct(pct)}**.`, `Your yearly goal of **${target}**: **${fmt.pct(pct)}** there.`));
+        }
+      } else parts.push(
         idle <= 0
           ? fmt.t('Y **ni una sola semana** sin correr.', 'And **not a single week** without a run.')
           : idle <= 8
@@ -268,7 +287,6 @@ export function shoesCard(env: DeckEnv): Card {
   const top = s.shoes[0];
   const rest = s.shoes.slice(1, 4);
   const name = cleanName(top.name).toUpperCase();
-  const lines = splitLines(name, 2, 16);
   const maxDist = top.distance;
   return {
     id: 'shoes',
@@ -277,6 +295,7 @@ export function shoesCard(env: DeckEnv): Card {
     render(f) {
       const { ctx, theme } = f;
       kicker(f, fmt.t('Tus zapatillas', 'Your shoes'), M, KICK);
+      const lines = f.memo('lines', () => (fitSize(ctx, name, 'display', 120, CW) >= 92 ? [name] : splitLines(name, 2, 16)));
       const hs = Math.min(120, ...lines.map((l) => fitSize(ctx, l, 'display', 120, CW)));
       const y = topBaseline(f, hs);
       headline(f, lines, M, y, hs, { start: 120 });
@@ -327,15 +346,17 @@ export function curiositiesCard(env: DeckEnv): Card {
   const tiles: { v: string; u?: string; l: string }[] = [];
   if (s.earliest) tiles.push({ v: fmt.clock(s.earliest.minutes), l: fmt.t(`Tu madrugón récord (${fmt.dateShort(s.earliest.run.local)})`, `Earliest start (${fmt.dateShort(s.earliest.run.local)})`) });
   if (s.latest && s.latest.minutes >= 19 * 60) tiles.push({ v: fmt.clock(s.latest.minutes), l: fmt.t(`Tu salida más tardía (${fmt.dateShort(s.latest.run.local)})`, `Latest start (${fmt.dateShort(s.latest.run.local)})`) });
+  if (s.kudos && s.kudos >= 5) tiles.push({ v: fmt.num(s.kudos), l: fmt.t('Kudos que has repartido', 'Kudos you gave out') });
   if (s.steps && s.steps > 1000) {
     const b = fmt.big(s.steps);
     tiles.push({ v: b.value, u: b.unit, l: fmt.t('Pasos, más o menos', 'Steps, give or take') });
   }
   if (s.calories && s.calories > 2000) tiles.push({ v: fmt.num(s.calories / PIZZA_KCAL), l: fmt.t(`Pizzas quemadas (${fmt.num(s.calories)} kcal)`, `Pizzas burned (${fmt.num(s.calories)} kcal)`) });
   if (s.hottest && s.coldest && s.hottest.temp - s.coldest.temp > 6) {
-    tiles.push({ v: fmt.temp(s.hottest.temp), l: fmt.t(`Tu carrera más calurosa (${fmt.dateShort(s.hottest.run.local)})`, `Hottest run (${fmt.dateShort(s.hottest.run.local)})`) });
-    tiles.push({ v: fmt.temp(s.coldest.temp), l: fmt.t(`Y la más fría (${fmt.dateShort(s.coldest.run.local)})`, `Coldest run (${fmt.dateShort(s.coldest.run.local)})`) });
+    tiles.push({ v: fmt.temp(s.hottest.temp), l: fmt.t(`La más calurosa según tu reloj (${fmt.dateShort(s.hottest.run.local)})`, `Hottest run, per your watch (${fmt.dateShort(s.hottest.run.local)})`) });
+    tiles.push({ v: fmt.temp(s.coldest.temp), l: fmt.t(`Y la más fría (${fmt.dateShort(s.coldest.run.local)})`, `And the coldest (${fmt.dateShort(s.coldest.run.local)})`) });
   }
+  if (s.challenges) tiles.push({ v: fmt.num(s.challenges), l: fmt.t(s.challenges === 1 ? 'Reto de Strava completado' : 'Retos de Strava completados', s.challenges === 1 ? 'Strava challenge completed' : 'Strava challenges completed') });
   if (s.races.length) tiles.push({ v: fmt.num(s.races.length), l: fmt.t(s.races.length === 1 ? 'Carrera con dorsal' : 'Carreras con dorsal', s.races.length === 1 ? 'Race with a bib' : 'Races with a bib') });
   if (s.cities.length >= 3) tiles.push({ v: fmt.num(s.cities.length), l: fmt.t('Ciudades distintas', 'Different cities') });
   tiles.push({ v: fmt.dist(s.avgDistance, 1), u: fmt.distUnit.toUpperCase(), l: fmt.t('Distancia media por carrera', 'Average distance per run') });

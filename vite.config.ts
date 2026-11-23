@@ -9,8 +9,10 @@ function sampleExport(): Plugin {
     name: 'sample-export',
     apply: 'serve',
     configureServer(server) {
-      server.middlewares.use('/__sample.zip', (_req, res) => {
-        const file = resolve(import.meta.dirname, 'samples', 'export_12345678.zip');
+      server.middlewares.use('/__sample.zip', (req, res) => {
+        // ?name=otro -> samples/otro.zip (solo letras, números, guiones)
+        const name = (new URL(req.url ?? '', 'http://x').searchParams.get('name') ?? 'export_12345678').replace(/[^\w-]/g, '');
+        const file = resolve(import.meta.dirname, 'samples', `${name}.zip`);
         if (!existsSync(file)) {
           res.statusCode = 404;
           res.end('Ejecuta primero: npm run sample');

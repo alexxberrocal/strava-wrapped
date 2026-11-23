@@ -147,4 +147,10 @@ export interface WrappedStats {
   others: { category: SportCategory; label: string; count: number; moving: number; distance: number }[];
   prev: { year: number; distance: number; runs: number; moving: number } | null;
   archetype: { key: ArchetypeKey; runnerUp: ArchetypeKey | null };
+  /** Kudos que has dado este año (reactions.csv). */
+  kudos: number | null;
+  /** Retos de Strava completados este año. */
+  challenges: number | null;
+  /** Objetivo de distancia de carrera (goals.csv): semanas/meses cumplidos o progreso anual. */
+  goal: { period: 'week' | 'month' | 'year'; target: number; hit: number; total: number } | null;
 }

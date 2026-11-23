@@ -9,10 +9,25 @@ export function cleanName(s: string): string {
     .trim();
 }
 
-/** Parte un texto en como mucho `maxLines` líneas equilibradas. */
+/** Parte un texto en como mucho `maxLines` líneas equilibradas (sin dejar una palabra suelta). */
 export function splitLines(text: string, maxLines: number, maxChars: number): string[] {
   const words = text.split(/\s+/).filter(Boolean);
   if (!words.length) return [''];
+  if (text.length <= maxChars || words.length === 1 || maxLines < 2) return [words.join(' ')];
+  if (maxLines === 2 || words.length === 2) {
+    let best: [string, string] = [words.join(' '), ''];
+    let bestScore = Infinity;
+    for (let i = 1; i < words.length; i++) {
+      const a = words.slice(0, i).join(' ');
+      const b = words.slice(i).join(' ');
+      const score = Math.max(a.length, b.length);
+      if (score < bestScore) {
+        bestScore = score;
+        best = [a, b];
+      }
+    }
+    return best;
+  }
   const lines: string[] = [];
   let cur = '';
   for (const w of words) {
