@@ -96,6 +96,8 @@ export default defineConfig({
   base: './',
   plugins: [sampleExport(), sitePages()],
   define: { 'import.meta.env.VITE_SITE_URL': JSON.stringify(SITE_URL) },
+  // El simulador y las revisiones escriben cientos de imágenes en samples/: no hay que vigilarlas.
+  server: { watch: { ignored: ['**/samples/**', '**/dist/**'] } },
   worker: { format: 'es' },
   build: {
     target: 'es2020',
