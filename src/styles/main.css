@@ -1271,6 +1271,16 @@ details.advanced[open] summary {
   .btn {
     padding: 8px 22px;
   }
+  /* En el móvil la píldora iría en dos líneas a todo el ancho: mejor una línea limpia con el ✓. */
+  .compat {
+    padding: 0;
+    border: 0;
+    background: none;
+    align-items: flex-start;
+  }
+  .compat svg {
+    margin-top: 1px;
+  }
   .hero__ctas .btn {
     flex: 1 1 auto;
   }
@@ -1337,4 +1347,9 @@ details.advanced[open] summary {
 }
 :root:lang(ko) :is(.hero__title, .section-title, .step h3, .drop__title, .panel__title, .sheet__title) {
   word-break: keep-all;
+}
+/* Comas al final de una línea de titular: lo justo para no pisar la de abajo. */
+.acc-punct {
+  display: inline-block;
+  padding-bottom: 0.16em;
 }

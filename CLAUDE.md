@@ -11,7 +11,7 @@ Web 100 % estática (Vite + TypeScript sin framework). El usuario sube el `.zip`
 - `npm run sim -- --n=300` — simulador de atletas (casos extremos fijos + aleatorios): pasa cada uno por el mismo código de la web, dibuja todas las tarjetas y avisa de excepciones, textos rotos, solapes, textos fuera de márgenes y huecos vacíos. Informe y hojas en `samples/sim/` (`--sheets=all|flagged|special`, `--only=<caso>`, `--full --card=habits`)
 - `npm run sim:fechas` — fechas del CSV en ~60 idiomas · `npm run sim:ficheros` — FIT/GPX/TCX rotos
 - `npm run sim:export -- <export.zip> [--year=2026 --lang=en --units=imperial]` — dibuja el resumen de un export real en `samples/export-render/` (datos personales: `samples/` está en .gitignore)
-- `npm run sim -- --n=0 --langs=all` — los atletas especiales en los 12 idiomas (textos que no caben, cortes de línea en chino/japonés…)
+- `npm run sim -- --n=0 --langs=all` — los atletas especiales en los 12 idiomas (textos que no caben, cortes de línea en chino/japonés…); `--random` solo aleatorios, `--only=a,b` varios perfiles
 - `npm run check:web` — compila y revisa la web en los 12 idiomas (móvil y ordenador, con el Chrome/Edge del sistema): nada se sale, botones en una línea, sin scroll lateral ni errores, y el flujo completo con el export de prueba. Capturas en `samples/web-check/`
 - `npm run fonts` — regenera `src/styles/fonts/*.css` (titulares en cirílico y CJK) · `dev.html?og&lang=xx` — regenera `public/og-xx.jpg`
 

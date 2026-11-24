@@ -116,20 +116,23 @@ export function allRunsCard(env: DeckEnv): Card {
   const routes = s.routes.slice(0, 400);
   const n = routes.length;
   const area: Box = { x: M - 10, y: 720, w: CW + 20, h: 1010 };
-  let cols = Math.max(4, Math.ceil(Math.sqrt((n * area.w) / area.h)));
+  let cols = Math.max(Math.min(4, Math.max(1, n)), Math.ceil(Math.sqrt((n * area.w) / area.h)));
   let rows = Math.ceil(n / cols);
   while (rows * (area.w / cols) > area.h) {
     cols++;
     rows = Math.ceil(n / cols);
   }
   const cell = area.w / cols;
+  // Pocas rutas: la cuadrícula se centra en vertical (sin un hueco enorme debajo).
+  const offY = Math.max(0, (area.h - rows * cell) / 2);
   return {
     id: 'allruns',
     theme: 'orange',
     duration: 7500,
     render(f) {
       const { ctx } = f;
-      kicker(f, fmt.m('unit.runs', { n: s.runs }), M, KICK);
+      // Las que tienen ruta (las que se dibujan), no todas: con poco GPS, "69 carreras" y 12 formas no cuadraba.
+      kicker(f, fmt.m('unit.runs', { n: s.routes.length }), M, KICK);
       const hs = 128;
       const y = KICK + 64 + capRatio(ctx) * hs;
       headline(f, fmt.lines('allruns.title'), M, y, hs, { start: 120, colors: [COLORS.ink, COLORS.white] });
@@ -137,7 +140,7 @@ export function allRunsCard(env: DeckEnv): Card {
         routes.map((r, i) => {
           const c = i % cols, rr = Math.floor(i / cols);
           const pad = cell * 0.14;
-          const pts = fitRoute(r.track, { x: area.x + c * cell + pad, y: area.y + rr * cell + pad, w: cell - 2 * pad, h: cell - 2 * pad }, 0);
+          const pts = fitRoute(r.track, { x: area.x + c * cell + pad, y: area.y + offY + rr * cell + pad, w: cell - 2 * pad, h: cell - 2 * pad }, 0);
           return { pts, cum: cumulative(pts) };
         }),
       );

@@ -1,14 +1,18 @@
 /**
  * Titulares en Anton con interlineado prieto: las mayúsculas con tilde (Á, Ñ, É, Ü, Й…) suben
  * un 25 % más que el resto y chocan con la línea de arriba ("DE TU AÑO" se leía mal), y la
- * cedilla (Ç) baja y choca con la de abajo. Cada palabra con tilde se envuelve en un <span> y,
- * solo si no está en la primera línea (o, la cedilla, en la última), gana el aire justo.
+ * cedilla (Ç) y las comas ("ERZÄHLT,") bajan y chocan con la de abajo. Cada palabra así se
+ * envuelve en un <span> y, solo si no está en la primera línea (o, lo que baja, en la última),
+ * gana el aire justo.
  * Se recalcula al cambiar de idioma y de tamaño de ventana.
  */
 
 // Marcas combinantes que van encima / debajo de la letra (tras normalizar a NFD).
 const UP = /[̀-̽̕̚-̈́͆͊-͌͐-͒͗͛ͣ-ͯ]/;
 const DOWN = /[̖-̙̜-̳̹-̼͇ͅ-͉͍͎͓-͖͙͚]/;
+
+/** Comas y puntos y coma: bajan de la línea base (en Anton, lo bastante para tocar la de abajo). */
+const DESC_PUNCT = /[,;‚]/;
 
 /** ¿La palabra (en mayúsculas) lleva marcas encima o debajo? */
 export function accentNeeds(word: string): { up: boolean; down: boolean } {
@@ -48,15 +52,18 @@ function wrapWords(el: HTMLElement) {
   for (const t of texts) {
     if (t.parentElement?.classList.contains('acc')) continue;
     const parts = t.data.split(/(\s+)/);
-    if (!parts.some((p) => p.trim() && (accentNeeds(p).up || accentNeeds(p).down))) continue;
+    const needs = (p: string) => p.trim() && (accentNeeds(p).up || accentNeeds(p).down || DESC_PUNCT.test(p));
+    if (!parts.some(needs)) continue;
     const frag = document.createDocumentFragment();
     for (const p of parts) {
       const need = p.trim() ? accentNeeds(p) : { up: false, down: false };
-      if (need.up || need.down) {
+      const punct = !!p.trim() && DESC_PUNCT.test(p);
+      if (need.up || need.down || punct) {
         const s = document.createElement('span');
         s.className = 'acc';
         if (need.up) s.dataset.up = '1';
         if (need.down) s.dataset.down = '1';
+        if (punct) s.dataset.punct = '1';
         s.textContent = p;
         frag.append(s);
       } else frag.append(p);
@@ -68,7 +75,7 @@ function wrapWords(el: HTMLElement) {
 function layout(el: HTMLElement) {
   const spans = [...el.querySelectorAll<HTMLElement>('span.acc')];
   if (!spans.length) return;
-  for (const s of spans) s.classList.remove('acc-up', 'acc-down');
+  for (const s of spans) s.classList.remove('acc-up', 'acc-down', 'acc-punct');
   const range = document.createRange();
   range.selectNodeContents(el);
   const rects = [...range.getClientRects()].filter((r) => r.width > 0 && r.height > 0);
@@ -79,6 +86,7 @@ function layout(el: HTMLElement) {
     const r = s.getBoundingClientRect();
     if (s.dataset.up && r.top > firstTop + 2) s.classList.add('acc-up');
     if (s.dataset.down && r.bottom < lastBottom - 2) s.classList.add('acc-down');
+    else if (s.dataset.punct && r.bottom < lastBottom - 2) s.classList.add('acc-punct');
   }
 }
 

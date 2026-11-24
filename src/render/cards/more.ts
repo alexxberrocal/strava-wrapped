@@ -171,7 +171,9 @@ export function recordsCard(env: DeckEnv): Card {
           drawTracked(ctx, fmt.dur(e.time), W - M, base + 6, 0, 'right');
           setFont(ctx, 'text', 24, 600);
           ctx.fillStyle = theme.sub;
-          let label = `${fmt.dateShort(e.run.local)} · ${cleanName(e.run.name)}`;
+          // Actividades sin nombre: solo la fecha (sin un "·" colgando).
+          const runName = cleanName(e.run.name);
+          let label = runName ? `${fmt.dateShort(e.run.local)} · ${runName}` : fmt.dateShort(e.run.local);
           while (ctx.measureText(label).width > CW * 0.5 && label.length > 8) label = label.slice(0, -2) + '…';
           ctx.fillText(label, M, base + 44);
         });

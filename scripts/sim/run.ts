@@ -199,6 +199,9 @@ function checkTexts(id: string, cardId: string, texts: TextBox[]) {
     if (/NaN|undefined|Infinity|null|\[object/.test(t.text)) add({ kind: 'texto roto', severity: 'error', profile: id, card: cardId, detail: t.text });
     if (t.text.includes('−') && !(cardId === 'distance' && /^−\d/.test(t.text)) && !/°[CF]/.test(t.text)) add({ kind: 'número negativo', severity: 'warn', profile: id, card: cardId, detail: t.text });
     if (!COVERED.test(t.text)) add({ kind: 'letras sin tipografía', severity: 'info', profile: id, card: cardId, detail: t.text.slice(0, 60) });
+    // "13 ene ·" o "· Carrera": un separador colgando (falta lo que iba al otro lado).
+    // (Los guiones al final de línea son a propósito en titulares: "Sonnenaufgangs-", "СЕВИЛЬЯ —".)
+    if (/(^|\s)[·•|]\s*$|^\s*[·•|]\s/.test(t.text) && t.text.trim().length > 1) add({ kind: 'separador colgando', severity: 'warn', profile: id, card: cardId, detail: t.text });
   }
   const runs = mergeRuns(texts);
   for (const r of runs) {
