@@ -3,6 +3,24 @@ import type { DecodedTrack } from './decoded';
 /** Distancias para las mejores marcas (m). */
 export const EFFORT_TARGETS = [1000, 1609.344, 5000, 10000, 21097.5, 42195] as const;
 
+/** Récords del mundo (s) por distancia: nada por debajo de esto puede ser real (fallos de GPS). */
+const WORLD_RECORDS: [number, number][] = [
+  [1000, 131.96],
+  [1609.344, 223.13],
+  [5000, 755],
+  [10000, 1571],
+  [21097.5, 3450],
+  [42195, 7235],
+];
+
+export function plausibleEffort(target: number, seconds: number): boolean {
+  if (!(seconds > 0)) return false;
+  const wr = WORLD_RECORDS.find(([d]) => Math.abs(d - target) < 1)?.[1];
+  // Margen del 1 %; y como mucho 30 min por km (más lento ya no es correr: pausa sin parar el reloj).
+  return (wr == null || seconds >= wr * 0.99) && seconds <= (target / 1000) * 1800;
+}
+
+
 /** Resumen ligero de una actividad con fichero (lo que viaja del worker al hilo principal). */
 export interface TrackSummary {
   id: string;
@@ -283,11 +301,14 @@ export function summarizeTrack(d: DecodedTrack, opts: SummarizeOptions): TrackSu
     if (opts.csvDistance > 0 && total > 0) {
       const f = opts.csvDistance / total;
       if (f > 0.85 && f < 1.2) effCum = effCum.map((v) => v * f);
+      // Si el GPS no se parece a la distancia de Strava (distancia editada, GPS loco), sus
+      // tramos tampoco son fiables: sin mejores marcas para esta actividad.
+      else effCum = [];
     }
     for (const target of EFFORT_TARGETS) {
       const t = bestEffort(effTime, effCum, target);
-      // Descarta lo imposible (más rápido que ~2:20/km sostenido).
-      if (Number.isFinite(t) && target / t < 7.2) res.efforts[String(target)] = t;
+      // Descarta lo imposible (más rápido que el récord del mundo: saltos de GPS).
+      if (Number.isFinite(t) && plausibleEffort(target, t)) res.efforts[String(target)] = t;
     }
   }
 
@@ -298,7 +319,8 @@ export function summarizeTrack(d: DecodedTrack, opts: SummarizeOptions): TrackSu
   for (let k = 0; k < idx.length; k++) {
     const i = idx[k];
     const hr = d.hr[i];
-    if (!Number.isFinite(hr)) continue;
+    // 0 = sin lectura; 240-255 = fallo del sensor. Fuera del rango humano no cuenta.
+    if (!Number.isFinite(hr) || hr < 30 || hr > 225) continue;
     const next = k + 1 < idx.length ? d.time[idx[k + 1]] : d.time[i] + 1;
     const dt = Math.max(0, Math.min(10, next - d.time[i]));
     const b = Math.round(hr);

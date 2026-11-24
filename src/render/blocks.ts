@@ -58,7 +58,12 @@ export function heroNumber(f: Frame, value: string, unit: string, x: number, y: 
   // Cifras muy largas (ultrafondistas): se reduce el tamaño para no salirse.
   const maxW = o.align === 'center' ? W - 120 : W - x - 70;
   setFont(ctx, 'display', size0);
-  const w0 = trackedWidth(ctx, o.fit ?? value, (o.tracking ?? -0.01) * size0) + (unit ? size0 * (o.unitScale ?? 0.3) * unit.length * 0.6 + size0 * 0.04 : 0);
+  let w0 = trackedWidth(ctx, o.fit ?? value, (o.tracking ?? -0.01) * size0);
+  if (unit) {
+    const us0 = size0 * (o.unitScale ?? 0.3);
+    setFont(ctx, 'display', us0);
+    w0 += trackedWidth(ctx, unit, us0 * 0.02) + size0 * 0.04;
+  }
   const size = w0 > maxW ? Math.floor((size0 * maxW) / w0) : size0;
   setFont(ctx, 'display', size);
   const tr = (o.tracking ?? -0.01) * size;
@@ -86,12 +91,30 @@ export function headline(f: Frame, lines: string[], x: number, y: number, size0:
   const { ctx, theme } = f;
   // Nunca se sale del lienzo: todas las líneas comparten el tamaño que quepa.
   const maxW = o.maxWidth ?? (o.align === 'center' ? W - 2 * 60 : W - x - 70);
-  const size = f.memo(`hl:${lines.join('|')}:${size0}:${maxW}`, () => Math.min(size0, ...lines.map((l) => fitSize(ctx, l.toUpperCase(), 'display', size0, maxW, 400, 20, 0.005))));
-  const lh = size * (o.lineHeight ?? 0.98);
+  const lhK = o.lineHeight ?? 0.98;
+  const lay = f.memo(`hl:${lines.join('|')}:${size0}:${maxW}:${lhK}`, () => {
+    const size = Math.min(size0, ...lines.map((l) => fitSize(ctx, l.toUpperCase(), 'display', size0, maxW, 400, 20, 0.005)));
+    setFont(ctx, 'display', size);
+    const m = lines.map((l) => ctx.measureText(l.toUpperCase()));
+    const ys = lines.map((_, i) => i * size * lhK);
+    // En Anton las mayúsculas con tilde (Á, Ñ, Ó…) suben un 25 % más que el resto y chocarían con
+    // la línea de arriba: se separan lo justo, mitad hacia arriba y mitad hacia abajo.
+    for (let i = 1; i < lines.length; i++) {
+      const need = m[i - 1].actualBoundingBoxDescent + size * 0.07 + m[i].actualBoundingBoxAscent;
+      const deficit = need - (ys[i] - ys[i - 1]);
+      if (deficit > 0) {
+        for (let k = 0; k < i; k++) ys[k] -= deficit / 2;
+        for (let k = i; k < lines.length; k++) ys[k] += deficit / 2;
+      }
+    }
+    return { size, ys };
+  });
+  const size = lay.size;
+  const lh = size * lhK;
   lines.forEach((line, i) => {
     const p = ease.outQuint(prog(f.t, (o.start ?? 0) + i * (o.stagger ?? 110), 850));
-    const by = y + i * lh;
-    maskReveal(f, by - size * 1.08, size * 1.22, p, () => {
+    const by = y + lay.ys[i];
+    maskReveal(f, by - size * 1.2, size * 1.34, p, () => {
       setFont(ctx, 'display', size);
       ctx.fillStyle = o.colors?.[i] ?? o.color ?? theme.fg;
       drawTracked(ctx, line.toUpperCase(), x, by, size * 0.005, o.align === 'center' ? 'center' : 'left');

@@ -1,5 +1,5 @@
 import type { Fmt } from '../../i18n/format';
-import type { RunRef, TimeOfDay, ArchetypeKey } from '../../stats/types';
+import type { RunRef, HabitKey, ArchetypeKey } from '../../stats/types';
 
 /** Quita emojis y símbolos raros de los nombres de actividad (la tipografía no los tiene). */
 export function cleanName(s: string): string {
@@ -43,6 +43,39 @@ export function splitLines(text: string, maxLines: number, maxChars: number): st
   return head;
 }
 
+/** "1 maratón", "1,4 maratones", "53 maratones" (el plural depende de la cifra ya redondeada). */
+export function marathonsLabel(fmt: Fmt, m: number): string {
+  const txt = fmt.smart(m, m < 10 ? 1 : 0);
+  const one = txt === '1';
+  return `${txt} ${fmt.t(one ? 'maratón' : 'maratones', one ? 'marathon' : 'marathons')}`;
+}
+
+/** Tiempo legible para totales: "40 min", "1,5 horas", "37 horas". */
+export function hoursLabel(fmt: Fmt, seconds: number): string {
+  if (seconds < 3600) {
+    const m = Math.max(1, Math.round(seconds / 60));
+    return `${m} min`;
+  }
+  const h = seconds / 3600;
+  const txt = h < 10 ? fmt.smart(h, 1) : fmt.num(h, 0);
+  return `${txt} ${fmt.t(txt === '1' ? 'hora' : 'horas', txt === '1' ? 'hour' : 'hours')}`;
+}
+
+/**
+ * Comparación con el año anterior: "+12 %", "−8 %", "×2,1" o "=" y su pie ("VS 2025",
+ * "VS 2025 A ESTAS ALTURAS"). `up` = has corrido más.
+ */
+export function yearDelta(fmt: Fmt, cur: number, prev: { year: number; distance: number; partial: boolean }): { value: string; caption: string; up: boolean } | null {
+  if (!(prev.distance > 0) || !(cur > 0)) return null;
+  const ratio = cur / prev.distance;
+  const caption = prev.partial ? fmt.t(`VS ${prev.year} A ESTAS ALTURAS`, `VS THIS TIME IN ${prev.year}`) : `VS ${prev.year}`;
+  if (ratio >= 2) return { value: `×${fmt.smart(ratio, ratio < 10 ? 1 : 0)}`, caption, up: true };
+  const pct = Math.round((ratio - 1) * 100);
+  if (pct === 0) return { value: fmt.t('IGUAL', 'SAME'), caption: prev.partial ? fmt.t(`QUE ${prev.year} A ESTAS ALTURAS`, `AS THIS TIME IN ${prev.year}`) : fmt.t(`QUE EN ${prev.year}`, `AS ${prev.year}`), up: true };
+  const sign = pct > 0 ? '+' : '−';
+  return { value: `${sign}${fmt.num(Math.abs(pct))}%`, caption, up: pct > 0 };
+}
+
 export function effortLabel(fmt: Fmt, target: number): string {
   if (target === 1000) return '1 KM';
   if (target < 1700) return fmt.t('1 MILLA', '1 MILE');
@@ -56,24 +89,62 @@ export function runWhen(fmt: Fmt, r: RunRef): string {
   return fmt.date(r.local);
 }
 
-export function timeOfDayTitle(fmt: Fmt, tod: TimeOfDay): [string, string] {
-  const es: Record<TimeOfDay, [string, string]> = {
-    dawn: ['ALMA', 'MADRUGADORA'],
+/**
+ * Título del perfil horario. `alt` = variante para no repetir el título del perfil runner
+ * (si ese ya es "Alma madrugadora" o "Criatura nocturna").
+ */
+export function habitTitle(fmt: Fmt, key: HabitKey, alt = false): [string, string] {
+  const es: Record<HabitKey, [string, string]> = {
+    dawn: alt ? ['LAS CALLES', 'SON TUYAS'] : ['ALMA', 'MADRUGADORA'],
+    sunrise: ['RUNNER DEL', 'AMANECER'],
     morning: ['RUNNER DE', 'MAÑANAS'],
     midday: ['A LA HORA', 'DE COMER'],
     afternoon: ['RUNNER DE', 'TARDES'],
-    evening: ['RUNNER DEL', 'ATARDECER'],
-    night: ['CRIATURA', 'NOCTURNA'],
+    golden: ['RUNNER DEL', 'ATARDECER'],
+    evening: ['RUNNER DE', 'ÚLTIMA HORA'],
+    night: alt ? ['LA NOCHE', 'ES TUYA'] : ['CRIATURA', 'NOCTURNA'],
+    anytime: ['RUNNER', 'SIN HORARIO'],
   };
-  const en: Record<TimeOfDay, [string, string]> = {
-    dawn: ['EARLY', 'BIRD'],
+  const en: Record<HabitKey, [string, string]> = {
+    dawn: alt ? ['EMPTY', 'STREETS'] : ['EARLY', 'BIRD'],
+    sunrise: ['SUNRISE', 'RUNNER'],
     morning: ['MORNING', 'RUNNER'],
     midday: ['LUNCH BREAK', 'RUNNER'],
     afternoon: ['AFTERNOON', 'RUNNER'],
-    evening: ['GOLDEN HOUR', 'RUNNER'],
-    night: ['NIGHT', 'OWL'],
+    golden: ['GOLDEN HOUR', 'RUNNER'],
+    evening: ['EVENING', 'RUNNER'],
+    night: alt ? ['YOU OWN', 'THE NIGHT'] : ['NIGHT', 'OWL'],
+    anytime: ['ANYTIME', 'RUNNER'],
   };
-  return fmt.t(es, en)[tod];
+  return fmt.t(es, en)[key];
+}
+
+/** Frase del perfil horario ("El 64% de tus carreras fueron…"). */
+export function habitSentence(fmt: Fmt, key: HabitKey, share: number): string {
+  const pct = `**${fmt.pct(share)}**`;
+  const es: Record<HabitKey, string> = {
+    dawn: `El ${pct} de tus carreras empezaron entre las 4:00 y las 8:00.`,
+    sunrise: `El ${pct} de tus carreras fueron con el sol saliendo.`,
+    morning: `El ${pct} de tus carreras fueron por la mañana.`,
+    midday: `El ${pct} de tus carreras fueron a mediodía.`,
+    afternoon: `El ${pct} de tus carreras fueron por la tarde.`,
+    golden: `El ${pct} de tus carreras fueron en la hora dorada, con el sol cayendo.`,
+    evening: `El ${pct} de tus carreras fueron entre las 19:00 y las 22:00.`,
+    night: `El ${pct} de tus carreras fueron de noche, entre las 22:00 y las 4:00.`,
+    anytime: `Ninguna franja pasa del ${pct} de tus carreras: sales cuando te cuadra.`,
+  };
+  const en: Record<HabitKey, string> = {
+    dawn: `${pct} of your runs started between 4 and 8 AM.`,
+    sunrise: `${pct} of your runs were at sunrise.`,
+    morning: `${pct} of your runs were in the morning.`,
+    midday: `${pct} of your runs were around midday.`,
+    afternoon: `${pct} of your runs were in the afternoon.`,
+    golden: `${pct} of your runs were in golden hour, with the sun going down.`,
+    evening: `${pct} of your runs were between 7 and 10 PM.`,
+    night: `${pct} of your runs were at night, between 10 PM and 4 AM.`,
+    anytime: `No time slot gets more than ${pct} of your runs: you go whenever it fits.`,
+  };
+  return fmt.t(es, en)[key];
 }
 
 export function archetypeText(fmt: Fmt, key: ArchetypeKey): { title: [string, string]; desc: string } {

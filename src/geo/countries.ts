@@ -68,7 +68,7 @@ export class Countries {
       const [a, b, c, d] = p.bbox;
       if (lon < a - pad || lon > c + pad || lat < b - pad || lat > d + pad) continue;
       for (const [x, y] of p.rings[0]) {
-        const dx = (x - lon) * kx, dy = y - lat;
+        const dx = ((((x - lon + 540) % 360) - 180) * kx), dy = y - lat;
         const dd = dx * dx + dy * dy;
         if (dd < bestD) {
           bestD = dd;

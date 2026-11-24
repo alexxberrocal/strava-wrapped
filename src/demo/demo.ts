@@ -95,7 +95,7 @@ export function demoStats(lang: 'es' | 'en', trimMeters = 250): WrappedStats {
     lang,
     runs: d.runs,
     others: d.others,
-    prev: { year: 2025, distance: 1_386_000, runs: 151, moving: 466_000 },
+    prev: { year: 2025, distance: 1_248_000, runs: 137, moving: 421_000, partial: true },
     periodEnd: localTimeOf(d.exportDate, 60),
     trimMeters,
   });

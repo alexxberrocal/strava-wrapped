@@ -30,7 +30,7 @@ function statsFor(lang: 'es' | 'en', kase: string | null) {
     lang,
     runs,
     others: kase === 'tiny' ? [] : d.others,
-    prev: kase === 'tiny' ? null : { year: 2025, distance: 1_386_000, runs: 151, moving: 466_000 },
+    prev: kase === 'tiny' ? null : kase === 'down' ? { year: 2025, distance: 2_480_000, runs: 260, moving: 840_000, partial: true } : { year: 2025, distance: 1_248_000, runs: 137, moving: 421_000, partial: true },
     periodEnd: localTimeOf(kase === 'partial' ? Date.UTC(2026, 2, 3) : d.exportDate, 60),
     trimMeters: 250,
   });

@@ -1,10 +1,11 @@
-import { geoInterpolate, geoMercator, geoPath } from 'd3-geo';
-import { ease, prog } from '../anim';
-import { counting, fadeUp, headline, heroNumber, kicker, paragraph, pill, ribbon } from '../blocks';
+import { geoInterpolate, geoMercator, geoNaturalEarth1, geoPath } from 'd3-geo';
+import { ease, prog, rng } from '../anim';
+import { counting, fadeUp, headline, heroNumber, kicker, paragraph, ribbon } from '../blocks';
 import type { Card, DeckEnv, Frame } from '../card';
-import { COLORS, CW, H, M, W, capRatio, cumulative, drawTracked, fitRoute, fitSize, roundRect, setFont, trackedWidth, type Box } from '../kit';
+import { COLORS, CW, H, M, W, capRatio, cumulative, drawTracked, fitRoute, fitSize, roundRect, setFont, tracePartial, trackedWidth, type Box } from '../kit';
 import { EARTH_KM, MARATHON_M, pickDestination, pickLandmark } from '../../stats/equivalences';
 import { localFromDoy, daysInYear } from '../../stats/time';
+import { marathonsLabel, yearDelta } from './common';
 
 const KICK = 330;
 
@@ -24,8 +25,8 @@ export function introCard(env: DeckEnv): Card {
       const { ctx } = f;
       const route = f.memo('route', () => {
         const t = s.longestRun?.track ?? s.routes[0]?.track;
-        if (!t) return null;
-        const pts = fitRoute(t, { x: 70, y: 1180, w: 940, h: 560 }, 0.02);
+        // Sin GPS: una pista de atletismo (dos rectas y dos curvas) que se dibuja igual que una ruta.
+        const pts = t ? fitRoute(t, { x: 70, y: 1180, w: 940, h: 560 }, 0.02) : stadium(W / 2, 1470, 860, 400);
         return { pts, cum: cumulative(pts) };
       });
       if (route) {
@@ -40,12 +41,33 @@ export function introCard(env: DeckEnv): Card {
       y += 290 * 0.98 + 10;
       headline(f, [String(s.year)], M, y, 290, { color: COLORS.white, start: 380 });
       const runs = `**${fmt.num(s.runs)} ${fmt.plural(s.runs, fmt.t('carrera', 'run'), fmt.t('carreras', 'runs'))}**`;
-      const text = s.isPartialYear
-        ? fmt.t(`${runs} entre el 1 de enero y el ${fmt.date(s.periodEnd)}. Esto es lo que cuentan tus datos.`, `${runs} between January 1 and ${fmt.date(s.periodEnd)}. Here's what your data says.`)
-        : fmt.t(`${runs} en todo ${s.year}. Esto es lo que cuentan tus datos.`, `${runs} across ${s.year}. Here's what your data says.`);
+      const text = !s.isPartialYear
+        ? fmt.t(`${runs} en todo ${s.year}. Esto es lo que cuentan tus datos.`, `${runs} across ${s.year}. Here's what your data says.`)
+        : s.daysInPeriod <= 1
+          ? fmt.t(`${runs} el 1 de enero. Esto es lo que cuentan tus datos.`, `${runs} on January 1. Here's what your data says.`)
+          : fmt.t(`${runs} entre el 1 de enero y el ${fmt.date(s.periodEnd)}. Esto es lo que cuentan tus datos.`, `${runs} between January 1 and ${fmt.date(s.periodEnd)}. Here's what your data says.`);
       paragraph(f, text, M, y + 110, 800, 42, { start: 800, color: COLORS.ink, hl: COLORS.white });
     },
   };
+}
+
+/** Óvalo de pista de atletismo centrado en (cx, cy), empezando al final de la recta de abajo. */
+function stadium(cx: number, cy: number, w: number, h: number): Float64Array {
+  const r = h / 2, straight = w - h;
+  const pts: number[] = [];
+  const steps = 48;
+  // Recta de abajo (de derecha a izquierda), curva izquierda, recta de arriba, curva derecha.
+  for (let i = 0; i <= steps; i++) pts.push(cx + straight / 2 - (straight * i) / steps, cy + r);
+  for (let i = 1; i <= steps; i++) {
+    const a = Math.PI / 2 + (Math.PI * i) / steps;
+    pts.push(cx - straight / 2 + r * Math.cos(a), cy + r * Math.sin(a));
+  }
+  for (let i = 1; i <= steps; i++) pts.push(cx - straight / 2 + (straight * i) / steps, cy - r);
+  for (let i = 1; i <= steps; i++) {
+    const a = -Math.PI / 2 + (Math.PI * i) / steps;
+    pts.push(cx + straight / 2 + r * Math.cos(a), cy + r * Math.sin(a));
+  }
+  return new Float64Array(pts);
 }
 
 // ------------------------------------------------------------------ DISTANCIA
@@ -53,9 +75,11 @@ export function distanceCard(env: DeckEnv): Card {
   const { fmt, stats: s, countries } = env;
   const km = s.distance / 1000;
   const home = s.home;
-  const dest = home ? pickDestination(home, km, fmt.lang) : null;
+  // Sin nombre de ciudad no hay frase "De X a Y" ni mapa (islas pequeñas, mitad del océano…).
+  const dest = home?.name ? pickDestination(home, km, fmt.lang) : null;
   const marathons = s.distance / MARATHON_M;
   const homeName = home?.name ?? null;
+  const delta = s.prev ? yearDelta(fmt, s.distance, s.prev) : null;
   return {
     id: 'distance',
     theme: 'dark',
@@ -73,14 +97,15 @@ export function distanceCard(env: DeckEnv): Card {
         lines = [fmt.t(`De ${homeName} a`, `From ${homeName} to`), dest.name];
         colors = [theme.fg, COLORS.orange];
       } else if (marathons >= 1) {
-        lines = [`${fmt.smart(marathons, marathons < 10 ? 1 : 0)} ${fmt.t('maratones', 'marathons')}`, fmt.t('seguidos', 'back to back')];
+        const one = fmt.smart(marathons, marathons < 10 ? 1 : 0) === '1';
+        lines = [marathonsLabel(fmt, marathons), one ? fmt.t('completo', 'done') : fmt.t('seguidos', 'back to back')];
       } else {
         lines = [fmt.t(`${fmt.num(s.distance / 400)} vueltas`, `${fmt.num(s.distance / 400)} laps`), fmt.t('a la pista', 'of a track')];
       }
       const hs = Math.min(112, ...lines.map((l) => fitSize(ctx, l.toUpperCase(), 'display', 112, CW)));
       headline(f, lines, M, y, hs, { start: 500, colors });
       y += hs * 0.98 * (lines.length - 1) + 92;
-      const mar = `**${fmt.smart(marathons, marathons < 10 ? 1 : 0)} ${fmt.t('maratones', 'marathons')}**`;
+      const mar = `**${marathonsLabel(fmt, marathons)}**`;
       const text = dest && homeName
         ? fmt.t(
             `Saliendo de ${homeName}, habrías llegado corriendo hasta **${dest.name}**: ${fmt.distWithUnit(dest.km * 1000, 0)} en línea recta. Son ${mar}.`,
@@ -88,8 +113,12 @@ export function distanceCard(env: DeckEnv): Card {
           )
         : marathons >= 1
           ? fmt.t(
-              `Equivale a ${mar} y al **${fmt.smart((km / EARTH_KM) * 100, 1)}%** de la vuelta al mundo.`,
-              `That's ${mar} and **${fmt.smart((km / EARTH_KM) * 100, 1)}%** of the way around the world.`,
+              km >= EARTH_KM
+                ? `Equivale a ${mar} y a **${fmt.smart(km / EARTH_KM, 1)} vueltas** al mundo.`
+                : `Equivale a ${mar} y al **${fmt.smart((km / EARTH_KM) * 100, 1)}%** de la vuelta al mundo.`,
+              km >= EARTH_KM
+                ? `That's ${mar} and **${fmt.smart(km / EARTH_KM, 1)} laps** around the world.`
+                : `That's ${mar} and **${fmt.smart((km / EARTH_KM) * 100, 1)}%** of the way around the world.`,
             )
           : fmt.t(
               `Como dar **${fmt.num(s.distance / 400)} vueltas** a una pista de atletismo. Y esto acaba de empezar.`,
@@ -101,16 +130,20 @@ export function distanceCard(env: DeckEnv): Card {
       const box: Box = { x: M, y: 1255, w: CW, h: 470 };
       if (dest && home && countries) {
         const geo = f.memo('arc', () => {
-          const pad = Math.max(3, Math.abs(dest.lat - home.lat) * 0.35, Math.abs(dest.lon - home.lon) * 0.2);
+          // Longitud del destino relativa a casa (Sídney → Auckland no da la vuelta al mundo).
+          const rel = (((dest.lon - home.lon + 540) % 360) - 180);
+          const pad = Math.max(3, Math.abs(dest.lat - home.lat) * 0.35, Math.abs(rel) * 0.2);
           // MultiPoint (no polígono): d3-geo interpreta el sentido de giro de los anillos.
           const extent = {
             type: 'MultiPoint' as const,
             coordinates: [
-              [Math.min(home.lon, dest.lon) - pad * 1.6, Math.min(home.lat, dest.lat) - pad],
-              [Math.max(home.lon, dest.lon) + pad * 1.6, Math.max(home.lat, dest.lat) + pad],
+              [home.lon + Math.min(0, rel) - pad * 1.6, Math.min(home.lat, dest.lat) - pad],
+              [home.lon + Math.max(0, rel) + pad * 1.6, Math.max(home.lat, dest.lat) + pad],
             ],
           };
-          const proj = geoMercator().fitExtent([[box.x, box.y], [box.x + box.w, box.y + box.h]], extent);
+          const proj = geoMercator()
+            .rotate([-(home.lon + rel / 2), 0])
+            .fitExtent([[box.x, box.y], [box.x + box.w, box.y + box.h]], extent);
           const interp = geoInterpolate([home.lon, home.lat], [dest.lon, dest.lat]);
           const arc: number[] = [];
           for (let i = 0; i <= 120; i++) {
@@ -170,8 +203,89 @@ export function distanceCard(env: DeckEnv): Card {
           labelAt(f, homeName!.toUpperCase(), geo.pts[0], geo.pts[1], COLORS.paper, pMap, box);
           labelAt(f, dest.name.toUpperCase(), ex, ey, COLORS.orange, pEnd, box);
         }
+      } else if (countries) {
+        // Sin destino: el mundo entero y tus kilómetros dándole la vuelta por el ecuador.
+        const world = f.memo('world', () => {
+          const wb: Box = { x: M - 20, y: 1245, w: CW + 40, h: 440 };
+          const proj = geoNaturalEarth1().fitExtent([[wb.x, wb.y], [wb.x + wb.w, wb.y + wb.h]], { type: 'Sphere' });
+          const laps = Math.min(km / EARTH_KM, 3);
+          const L0 = home ? home.lon : 0;
+          const segs: Float64Array[] = [];
+          let cur: number[] = [];
+          for (let a = 0; a <= laps * 360 + 1e-9; a += 1) {
+            const lon = ((L0 + a + 540) % 360) - 180;
+            const p = proj([lon, 0]);
+            if (!p) continue;
+            if (cur.length >= 2 && Math.abs(p[0] - cur[cur.length - 2]) > wb.w / 2) {
+              segs.push(new Float64Array(cur));
+              cur = [];
+            }
+            cur.push(p[0], p[1]);
+          }
+          if (cur.length >= 2) segs.push(new Float64Array(cur));
+          const lens = segs.map((sg) => cumulative(sg));
+          const total = lens.reduce((acc, c) => acc + c[c.length - 1], 0);
+          return { proj, segs, lens, total, wb };
+        });
+        const land = f.layer('world', (g) => {
+          const path = geoPath(world.proj, g);
+          g.beginPath();
+          path({ type: 'Sphere' });
+          g.fillStyle = 'rgba(243,238,230,0.035)';
+          g.fill();
+          g.beginPath();
+          for (const c of countries.features) path(c);
+          g.fillStyle = 'rgba(243,238,230,0.13)';
+          g.fill();
+          g.beginPath();
+          path({ type: 'LineString', coordinates: Array.from({ length: 73 }, (_, i) => [-180 + i * 5, 0]) });
+          g.setLineDash([3, 10]);
+          g.strokeStyle = 'rgba(243,238,230,0.35)';
+          g.lineWidth = 2;
+          g.stroke();
+        });
+        const pMap = ease.outCubic(prog(f.t, 1000, 900));
+        ctx.save();
+        ctx.globalAlpha = pMap;
+        ctx.drawImage(land, 0, 0, W, H);
+        ctx.restore();
+        const pLine = ease.inOutCubic(prog(f.t, 1500, 2400));
+        let left = world.total * pLine;
+        let end: [number, number] | null = null;
+        ctx.save();
+        ctx.strokeStyle = COLORS.orange;
+        ctx.lineWidth = 8;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        for (let i = 0; i < world.segs.length && left > 0; i++) {
+          const sg = world.segs[i], c = world.lens[i];
+          const len = c[c.length - 1];
+          end = tracePartial(ctx, sg, c, Math.min(len, left));
+          ctx.stroke();
+          left -= len;
+        }
+        if (pMap > 0 && world.segs.length) {
+          ctx.fillStyle = COLORS.paper;
+          ctx.beginPath();
+          ctx.arc(world.segs[0][0], world.segs[0][1], 10, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        if (end && pLine > 0) {
+          ctx.fillStyle = COLORS.orange;
+          ctx.beginPath();
+          ctx.arc(end[0], end[1], 12, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+        fadeUp(f, 1300, () => {
+          setFont(ctx, 'text', 24, 800);
+          ctx.fillStyle = theme.sub;
+          const y0 = world.wb.y + world.wb.h + 46;
+          drawTracked(ctx, fmt.t('VUELTA AL MUNDO', 'AROUND THE WORLD'), M, y0, 4);
+          drawTracked(ctx, `${fmt.dist(EARTH_KM * 1000, 0)} ${fmt.distUnit.toUpperCase()}`, W - M, y0, 4, 'right');
+        });
       } else {
-        // Sin mapa: barra de progreso de la vuelta al mundo.
+        // Sin mapa (no cargó): barra de progreso de la vuelta al mundo.
         fadeUp(f, 1000, () => {
           const pct = Math.min(1, km / EARTH_KM);
           const p = ease.inOutCubic(prog(f.t, 1300, 1800));
@@ -184,13 +298,19 @@ export function distanceCard(env: DeckEnv): Card {
           setFont(ctx, 'text', 24, 800);
           ctx.fillStyle = theme.sub;
           drawTracked(ctx, fmt.t('VUELTA AL MUNDO', 'AROUND THE WORLD'), M, 1580, 4);
-          drawTracked(ctx, '40.075 KM', W - M, 1580, 4, 'right');
+          drawTracked(ctx, `${fmt.dist(EARTH_KM * 1000, 0)} ${fmt.distUnit.toUpperCase()}`, W - M, 1580, 4, 'right');
         });
       }
-      // Solo celebramos: la comparación con el año anterior aparece si has corrido más.
-      if (s.prev && s.prev.distance > 0 && s.distance / s.prev.distance - 1 >= 0.03) {
-        const delta = s.distance / s.prev.distance - 1;
-        pill(f, `+${fmt.num(delta * 100, 0)}% VS ${s.prev.year}`, W - M, KICK - 44, { bg: COLORS.orange, fg: COLORS.ink, size: 26, start: 2000, align: 'right' });
+      // Comparación con el año anterior (mismas fechas si el año sigue en curso), suba o baje.
+      if (delta) {
+        fadeUp(f, 2000, () => {
+          setFont(ctx, 'text', 21, 800);
+          ctx.fillStyle = theme.sub;
+          drawTracked(ctx, delta.caption, W - M, KICK, 3, 'right');
+          setFont(ctx, 'display', 64);
+          ctx.fillStyle = delta.up ? COLORS.orange : theme.fg;
+          drawTracked(ctx, delta.value, W - M, KICK - 44, 0, 'right');
+        });
       }
     },
   };
@@ -236,8 +356,16 @@ export function timeCard(env: DeckEnv): Card {
         ? [daysTxt, fmt.t('sin parar', 'non-stop')]
         : [fmt.t(`${fmt.num(s.moving / 60)} minutos`, `${fmt.num(s.moving / 60)} minutes`), fmt.t('de puro running', 'of pure running')];
       headline(f, tLines, M, y, 112, { start: 450, color: COLORS.ink });
-      const pct = s.activeDays / s.daysInPeriod;
-      const text = s.isPartialYear
+      // Si empezaste a correr a mitad de año, lo justo es contar desde tu primera carrera.
+      const since = s.firstRunDoy >= 45 && s.activeDays >= 3 ? s.firstRunDoy : 0;
+      const dayspan = s.daysInPeriod - since;
+      const pct = s.activeDays / Math.max(1, dayspan);
+      const text = since
+        ? fmt.t(
+            `Desde tu primera carrera, el ${fmt.date(localFromDoy(s.year, since))}, saliste a correr **${s.activeDays} de ${dayspan} días**: el **${fmt.pct(pct)}**.`,
+            `Since your first run on ${fmt.date(localFromDoy(s.year, since))}, you ran on **${s.activeDays} of ${dayspan} days**: **${fmt.pct(pct)}**.`,
+          )
+        : s.isPartialYear
         ? fmt.t(
             `Saliste a correr **${s.activeDays} de los ${s.daysInPeriod} días** que llevamos de año: el **${fmt.pct(pct)}**.`,
             `You ran on **${s.activeDays} of the ${s.daysInPeriod} days** so far this year: **${fmt.pct(pct)}**.`,
@@ -258,7 +386,7 @@ export function timeCard(env: DeckEnv): Card {
         if (frac > sweep) break;
         const a = -Math.PI / 2 + frac * Math.PI * 2;
         const active = s.activeDayFlags[d] === 1;
-        const future = d >= s.daysInPeriod;
+        const future = d >= s.daysInPeriod || d < since;
         const r0 = active ? R - 64 : R - 18;
         const r1 = active ? R + 14 : R;
         ctx.strokeStyle = active ? COLORS.white : future ? 'rgba(18,18,18,0.07)' : 'rgba(18,18,18,0.22)';
@@ -302,7 +430,7 @@ export function monthsCard(env: DeckEnv): Card {
       const bw = s.bestWeek;
       const weekTxt = bw
         ? fmt.t(
-            ` Tu semana más fuerte: **${fmt.distWithUnit(bw.distance, 0)}**, del ${localFromDoy(s.year, bw.startDoy).d} al ${fmt.date(localFromDoy(s.year, bw.endDoy))}.`,
+            ` Tu semana más fuerte: **${fmt.distWithUnit(bw.distance, 0)}**, del ${weekStartEs(s.year, bw.startDoy, bw.endDoy, fmt)} al ${fmt.date(localFromDoy(s.year, bw.endDoy))}.`,
             ` Your biggest week: **${fmt.distWithUnit(bw.distance, 0)}**, ${fmt.dateShort(localFromDoy(s.year, bw.startDoy))}–${fmt.dateShort(localFromDoy(s.year, bw.endDoy))}.`,
           )
         : '';
@@ -359,6 +487,12 @@ export function monthsCard(env: DeckEnv): Card {
   };
 }
 
+/** "3" si la semana no cambia de mes ("del 3 al 9 de marzo"); si no, "28 de febrero". */
+function weekStartEs(year: number, startDoy: number, endDoy: number, fmt: DeckEnv['fmt']): string {
+  const a = localFromDoy(year, startDoy), b = localFromDoy(year, endDoy);
+  return a.mo === b.mo ? String(a.d) : fmt.date(a);
+}
+
 // ------------------------------------------------------------------ DESNIVEL
 export function elevationCard(env: DeckEnv): Card {
   const { fmt, stats: s } = env;
@@ -396,7 +530,7 @@ export function elevationCard(env: DeckEnv): Card {
           `Tu día más duro: **${fmt.elev(s.biggestClimb.elevGain)} ${fmt.elevUnit}** en ${fmt.distWithUnit(s.biggestClimb.distance)} el ${fmt.date(s.biggestClimb.local)}.`,
           `Your toughest day: **${fmt.elev(s.biggestClimb.elevGain)} ${fmt.elevUnit}** over ${fmt.distWithUnit(s.biggestClimb.distance)} on ${fmt.date(s.biggestClimb.local)}.`,
         ));
-      if (s.highestPoint) {
+      if (s.highestPoint && s.highestPoint.elevation >= 300) {
         const where = s.highestPoint.run.country ? fmt.country(s.highestPoint.run.country) : null;
         parts.push(fmt.t(
           `Tu punto más alto: **${fmt.elev(s.highestPoint.elevation)} ${fmt.elevUnit}**${where ? `, en ${where}` : ''}.`,
@@ -461,7 +595,7 @@ export function elevationCard(env: DeckEnv): Card {
         setFont(ctx, 'text', 22, 800);
         ctx.fillStyle = theme.sub;
         const label = `${fmt.t(nEs, nEn).replace(/^(el|la|the) /i, '').toUpperCase()} · ${fmt.elev(lm.landmark.height)} ${fmt.elevUnit.toUpperCase()}`;
-        drawTracked(ctx, label, W - M + 30, sy - 16, 3, 'right');
+        drawTracked(ctx, label, W - M, sy - 16, 3, 'right');
         ctx.restore();
       }
     },
@@ -473,9 +607,12 @@ export function paceCard(env: DeckEnv): Card {
   const { fmt, stats: s } = env;
   const trend = s.paceTrend;
   const deltaS = trend ? fmt.paceDeltaSeconds(trend.first - trend.last) : 0;
-  const improved = deltaS >= 5;
-  const slower = deltaS <= -5;
+  const improved = !!trend && deltaS >= 5;
+  const slower = !!trend && deltaS <= -5;
   const monthsPace = s.months.map((m) => (m.runs >= 2 && m.distance > 3000 ? m.moving / m.distance : NaN));
+  const validMonths = monthsPace.filter((v) => Number.isFinite(v)).length;
+  // Sin evolución por meses: tira con el ritmo de cada carrera.
+  const strip = validMonths < 3 && s.paceSamples.length >= 3 ? paceStrip(s.paceSamples, s.avgPace) : null;
   return {
     id: 'pace',
     theme: 'orange',
@@ -491,7 +628,9 @@ export function paceCard(env: DeckEnv): Card {
         ? [fmt.t(`${deltaS} segundos`, `${deltaS} seconds`), fmt.t(`más rápido`, `faster`)]
         : slower
           ? [fmt.t('Disfrutando', 'Enjoying'), fmt.t(fmt.imperial ? 'cada milla' : 'cada kilómetro', fmt.imperial ? 'every mile' : 'every kilometre')]
-          : [fmt.t('Constante', 'Steady'), fmt.t('como un reloj', 'as a clock')];
+          : trend
+            ? [fmt.t('Constante', 'Steady'), fmt.t('como un reloj', 'as a clock')]
+            : [fmt.t('Tu ritmo', 'Your'), fmt.t('de crucero', 'cruising pace')];
       headline(f, lines, M, y, 112, { start: 450, color: COLORS.ink });
       const parts: string[] = [];
       if (trend && (improved || slower))
@@ -551,9 +690,87 @@ export function paceCard(env: DeckEnv): Card {
         ctx.fillStyle = 'rgba(18,18,18,0.55)';
         drawTracked(ctx, fmt.t('↑ MÁS RÁPIDO', '↑ FASTER'), M, box.y - 44, 3);
         ctx.restore();
+      } else if (strip) {
+        const box = { x: M + 20, y: 1360, w: CW - 40, h: 250 };
+        const X = (pace: number) => box.x + ((strip.slow - pace) / (strip.slow - strip.fast)) * box.w;
+        // Eje
+        ctx.save();
+        ctx.globalAlpha = prog(f.t, 1000, 500);
+        ctx.fillStyle = 'rgba(18,18,18,0.22)';
+        ctx.fillRect(box.x, box.y + box.h / 2 - 1.5, box.w, 3);
+        ctx.restore();
+        strip.dots.forEach((d, k) => {
+          const a = ease.outBack(prog(f.t, 1100 + (k / strip.dots.length) * 1400, 420));
+          if (a <= 0) return;
+          ctx.save();
+          ctx.globalAlpha = d.best ? 1 : 0.42;
+          ctx.fillStyle = d.best ? COLORS.white : COLORS.ink;
+          ctx.beginPath();
+          ctx.arc(X(d.pace), box.y + box.h / 2 + d.dy * (box.h / 2 - 18), d.r * a, 0, Math.PI * 2);
+          ctx.fill();
+          if (d.best) {
+            ctx.strokeStyle = COLORS.ink;
+            ctx.lineWidth = 4;
+            ctx.stroke();
+          }
+          ctx.restore();
+        });
+        // Media
+        const pa = ease.inOutCubic(prog(f.t, 2600, 600));
+        if (pa > 0 && Number.isFinite(s.avgPace)) {
+          const ax = X(Math.min(strip.slow, Math.max(strip.fast, s.avgPace)));
+          ctx.save();
+          ctx.fillStyle = COLORS.ink;
+          ctx.fillRect(ax - 2, box.y + box.h / 2 - (box.h / 2 + 10) * pa, 4, (box.h + 20) * pa);
+          ctx.restore();
+        }
+        fadeUp(f, 1300, () => {
+          setFont(ctx, 'text', 22, 800);
+          ctx.fillStyle = 'rgba(18,18,18,0.6)';
+          drawTracked(ctx, fmt.t('← MÁS LENTO', '← SLOWER'), box.x, box.y + box.h + 70, 3, 'left');
+          drawTracked(ctx, fmt.t('MÁS RÁPIDO →', 'FASTER →'), box.x + box.w, box.y + box.h + 70, 3, 'right');
+          setFont(ctx, 'display', 44);
+          ctx.fillStyle = COLORS.ink;
+          drawTracked(ctx, fmt.pace(strip.slow), box.x, box.y - 30, 0, 'left');
+          drawTracked(ctx, fmt.pace(strip.fast), box.x + box.w, box.y - 30, 0, 'right');
+        });
       }
     },
   };
+}
+
+/** Puntos de la tira de ritmos: un punto por carrera (tamaño según distancia), la más rápida destacada. */
+function paceStrip(samples: { pace: number; distance: number }[], avg: number) {
+  const sorted = [...samples].sort((a, b) => a.pace - b.pace);
+  const q = (p: number) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.round(p * (sorted.length - 1))))].pace;
+  let fast = q(0), slow = q(1);
+  if (sorted.length > 20) {
+    fast = q(0.02);
+    slow = q(0.98);
+  }
+  if (Number.isFinite(avg)) {
+    fast = Math.min(fast, avg);
+    slow = Math.max(slow, avg);
+  }
+  const span = Math.max(slow - fast, 0.03);
+  fast -= span * 0.04;
+  slow = fast + span * 1.08;
+  const r = rng(samples.length * 7919 + Math.round(avg * 1e5));
+  const step = Math.max(1, Math.ceil(samples.length / 260));
+  const maxD = Math.max(...samples.map((x) => x.distance));
+  const bestPace = sorted[0].pace;
+  const dots = samples
+    .filter((x, i) => i % step === 0 || x.pace === bestPace)
+    .map((x) => ({
+      pace: Math.min(slow, Math.max(fast, x.pace)),
+      r: 7 + 13 * Math.sqrt(x.distance / maxD),
+      dy: (r() - 0.5) * 1.6,
+      best: x.pace === bestPace,
+    }));
+  // La más rápida se dibuja la última (encima) y centrada.
+  dots.sort((a, b) => Number(a.best) - Number(b.best));
+  for (const d of dots) if (d.best) d.dy = 0;
+  return { fast, slow, dots };
 }
 
 // ------------------------------------------------------------------ PULSO
@@ -561,8 +778,12 @@ export function heartCard(env: DeckEnv): Card {
   const { fmt, stats: s } = env;
   const hr = s.hr!;
   const big = fmt.big(hr.beats);
+  // Las zonas solo tienen sentido con datos segundo a segundo (no con las medias del CSV).
+  const zonesOk = hr.zones.length === 5 && hr.zoneSeconds >= 1800;
   const totalZ = hr.zoneSeconds || 1;
-  const dominant = hr.zones.reduce((bi, z, i, arr) => (z.seconds > arr[bi].seconds ? i : bi), 0);
+  const dominant = zonesOk ? hr.zones.reduce((bi, z, i, arr) => (z.seconds > arr[bi].seconds ? i : bi), 0) : -1;
+  const maxOk = Number.isFinite(hr.max) && hr.max > hr.avg;
+  const bpm = fmt.t('ppm', 'bpm');
   return {
     id: 'heart',
     theme: 'dark',
@@ -576,18 +797,29 @@ export function heartCard(env: DeckEnv): Card {
       heroNumber(f, counted.unit === big.unit ? counted.value : big.value, big.unit, M, base, size, { start: 100, unitScale: 0.32, fit: big.value });
       const y = base + 150;
       headline(f, [fmt.t('latidos', 'heartbeats'), fmt.t('corriendo', 'while running')], M, y, 112, { start: 450 });
-      paragraph(
-        f,
-        fmt.t(
-          `Pulso medio de **${fmt.num(hr.avg)} ppm** y máximo de **${fmt.num(hr.max)} ppm**. Donde más tiempo pasaste: **zona ${dominant + 1}**.`,
-          `Average heart rate **${fmt.num(hr.avg)} bpm**, max **${fmt.num(hr.max)} bpm**. Most of your time: **zone ${dominant + 1}**.`,
-        ),
-        M,
-        y + 112 * 0.98 + 92,
-        CW,
-        38,
-        { start: 750 },
-      );
+      const avg = `**${fmt.num(hr.avg)} ${bpm}**`;
+      const parts = [
+        maxOk
+          ? fmt.t(`Pulso medio de ${avg} y máximo de **${fmt.num(hr.max)} ${bpm}**.`, `Average heart rate ${avg}, max **${fmt.num(hr.max)} ${bpm}**.`)
+          : fmt.t(`Pulso medio de ${avg} en tus carreras.`, `Average heart rate of ${avg} on your runs.`),
+      ];
+      if (zonesOk) parts.push(fmt.t(`Donde más tiempo pasaste: **zona ${dominant + 1}**.`, `Most of your time: **zone ${dominant + 1}**.`));
+      paragraph(f, parts.join(' '), M, y + 112 * 0.98 + 92, CW, 38, { start: 750 });
+
+      if (!zonesOk) {
+        // Sin zonas: electrocardiograma que entra en la tarjeta.
+        const ecg = f.memo('ecg', () => {
+          const beat: [number, number][] = [[0, 0], [0.16, 0], [0.22, -22], [0.28, 0], [0.36, 0], [0.4, 34], [0.46, -270], [0.52, 96], [0.57, 0], [0.68, 0], [0.77, -46], [0.86, 0], [1, 0]];
+          const x0 = M - 60, x1 = W - M + 60, beats = 4, bw = (x1 - x0) / beats, base0 = 1500;
+          const pts: number[] = [];
+          for (let b = 0; b < beats; b++) for (const [k, dy] of beat) if (!(b > 0 && k === 0)) pts.push(x0 + (b + k) * bw, base0 + dy);
+          const arr = new Float64Array(pts);
+          return { pts: arr, cum: cumulative(arr) };
+        });
+        ribbon(f, ecg.pts, ecg.cum, 1, 'rgba(243,238,230,0.08)', 7, false);
+        ribbon(f, ecg.pts, ecg.cum, ease.inOutSine(prog(f.t, 1000, 2600)), COLORS.orange, 7, true);
+        return;
+      }
       // Zonas
       const top = 1290;
       const rowH = 88;

@@ -82,9 +82,15 @@ export function setFont(ctx: Ctx, kind: 'display' | 'text', size: number, weight
   ctx.font = kind === 'display' ? `${size}px ${FONT_DISPLAY}` : `${weight} ${size}px ${FONT_TEXT}`;
 }
 
+/**
+ * Escrituras que no se pueden dibujar letra a letra (se unen o van de derecha a izquierda):
+ * árabe, hebreo, devanagari, tailandés… Se dibujan de una vez, sin espaciado.
+ */
+const COMPLEX = /[\u0590-\u08FF\u0900-\u0DFF\u0E00-\u0E7F\u0F00-\u0FFF\u1000-\u109F\u1780-\u17FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
+
 /** Anchura con espaciado entre letras manual (portátil a todos los navegadores). */
 export function trackedWidth(ctx: Ctx, text: string, tracking: number): number {
-  if (!tracking) return ctx.measureText(text).width;
+  if (!tracking || COMPLEX.test(text)) return ctx.measureText(text).width;
   let w = 0;
   for (const ch of text) w += ctx.measureText(ch).width + tracking;
   return w - tracking;
@@ -95,7 +101,7 @@ export function drawTracked(ctx: Ctx, text: string, x: number, y: number, tracki
   ctx.textAlign = 'left';
   const w = trackedWidth(ctx, text, tracking);
   let cx = align === 'left' ? x : align === 'right' ? x - w : x - w / 2;
-  if (!tracking) {
+  if (!tracking || COMPLEX.test(text)) {
     ctx.fillText(text, cx, y);
   } else {
     for (const ch of text) {
@@ -320,12 +326,19 @@ export interface Box {
 export function projectRoutes(tracks: Float32Array[], box: Box, opts: { lo?: number; hi?: number; pad?: number } = {}): { paths: Float64Array[]; k: number } {
   const lo = opts.lo ?? 0;
   const hi = opts.hi ?? 1;
+  // Rutas que cruzan el antimeridiano (Fiyi, Chukotka…): longitudes continuas alrededor de una referencia.
+  let ref = NaN;
+  for (const t of tracks) if (t.length >= 2 && Number.isFinite(t[1])) {
+    ref = t[1];
+    break;
+  }
+  const unwrap = (lon: number) => (Number.isFinite(ref) ? lon + 360 * Math.round((ref - lon) / 360) : lon);
   const xs: number[] = [];
   const ys: number[] = [];
   for (const t of tracks) {
     const step = Math.max(1, Math.floor(t.length / 2 / 200));
     for (let i = 0; i < t.length; i += 2 * step) {
-      xs.push(t[i + 1]);
+      xs.push(unwrap(t[i + 1]));
       ys.push(mercY(t[i]));
     }
   }
@@ -354,7 +367,7 @@ export function projectRoutes(tracks: Float32Array[], box: Box, opts: { lo?: num
   const paths = tracks.map((t) => {
     const out = new Float64Array(t.length);
     for (let i = 0; i < t.length; i += 2) {
-      out[i] = bx + (t[i + 1] - cx) * k;
+      out[i] = bx + (unwrap(t[i + 1]) - cx) * k;
       out[i + 1] = by - (mercY(t[i]) - cy) * k;
     }
     return out;

@@ -1,8 +1,9 @@
-import { EFFORT_TARGETS, haversine } from '../parse/track';
+import { EFFORT_TARGETS, haversine, plausibleEffort } from '../parse/track';
 import type { Goal, PrivacyZone } from '../parse/extras';
 import type { SportCategory } from '../parse/sports';
 import { daysInYear, jan1Dow, localTimeOf, weekIndex } from './time';
-import type { Activity, ArchetypeKey, LocalTime, Place, RunRef, TimeOfDay, WrappedStats } from './types';
+import { sunPhase } from './sun';
+import type { Activity, ArchetypeKey, HabitKey, LocalTime, Place, RunRef, TimeOfDay, WrappedStats } from './types';
 
 export interface ComputeInput {
   year: number;
@@ -10,11 +11,13 @@ export interface ComputeInput {
   lang: 'es' | 'en';
   runs: Activity[];
   others: Activity[];
-  prev: { year: number; distance: number; runs: number; moving: number } | null;
+  prev: WrappedStats['prev'];
   /** Fecha (local) del export o del último dato; acota "los días que llevamos de año". */
   periodEnd: LocalTime | null;
   /** Metros a recortar al inicio/fin de cada ruta (privacidad). 0 = no recortar. */
   trimMeters: number;
+  /** Distancia de cada zapatilla en todo el export hasta el final de este año (m). */
+  gearLifetime?: Record<string, number>;
   /** Datos extra del export ya filtrados para el año. */
   extras?: {
     kudos: number | null;
@@ -91,12 +94,14 @@ function median(values: number[]): number {
 }
 
 function distKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const x = (lon2 - lon1) * Math.cos((((lat1 + lat2) / 2) * Math.PI) / 180);
+  // Longitud envuelta: 179,9° y −179,9° están a 0,2°, no a 359,8° (Fiyi, Chukotka…).
+  const x = ((((lon2 - lon1 + 540) % 360) - 180) * Math.cos((((lat1 + lat2) / 2) * Math.PI) / 180));
   return Math.sqrt(x * x + (lat2 - lat1) ** 2) * 111.2;
 }
 
+/** Franja horaria (hora local de inicio). Las 4:00 ya son madrugón, no noche. */
 export function timeOfDayOf(h: number): TimeOfDay {
-  if (h >= 5 && h < 8) return 'dawn';
+  if (h >= 4 && h < 8) return 'dawn';
   if (h >= 8 && h < 12) return 'morning';
   if (h >= 12 && h < 15) return 'midday';
   if (h >= 15 && h < 19) return 'afternoon';
@@ -191,6 +196,25 @@ export function computeStats(input: ComputeInput): WrappedStats {
   const todKey = (Object.keys(tod) as TimeOfDay[]).reduce((a, b) => (tod[b] > tod[a] ? b : a), 'morning' as TimeOfDay);
   const n = runs.length || 1;
 
+  // ---- El sol: ¿hora dorada de verdad, amanecer o noche cerrada? (solo carreras al aire libre) ----
+  let sun: WrappedStats['sun'] = null;
+  {
+    let outdoor = 0, golden = 0, sunrise = 0, dark = 0;
+    for (const r of runs) {
+      const st = r.track?.start;
+      if (r.indoor || !st) continue;
+      const dur = r.csv.moving > 0 ? r.csv.moving : r.csv.elapsed;
+      const mid = r.startUtc + (Number.isFinite(dur) && dur > 0 ? Math.min(dur, 4 * 3600) : 0) * 500;
+      const ph = sunPhase(mid, st[0], st[1]);
+      outdoor++;
+      if (ph === 'golden') golden++;
+      else if (ph === 'sunrise') sunrise++;
+      else if (ph === 'dark') dark++;
+    }
+    if (outdoor > 0) sun = { outdoor, golden, sunrise, dark };
+  }
+  const habit = pickHabit(tod, todKey, runs.length, sun);
+
   // ---- Récords de actividad ----
   let longest: Activity | null = null, fastest: Activity | null = null, climb: Activity | null = null;
   const minFast = runs.some((r) => r.csv.distance >= 3000) ? 3000 : 1000;
@@ -212,7 +236,7 @@ export function computeStats(input: ComputeInput): WrappedStats {
     let best: { time: number; run: Activity } | null = null;
     for (const r of runs) {
       const t = r.track?.efforts[String(target)];
-      if (t != null && finite(t) && (!best || t < best.time)) best = { time: t, run: r };
+      if (t != null && finite(t) && plausibleEffort(target, t) && (!best || t < best.time)) best = { time: t, run: r };
     }
     if (best) efforts.push({ target, time: best.time, run: ref(best.run) });
   }
@@ -246,20 +270,20 @@ export function computeStats(input: ComputeInput): WrappedStats {
     let zoneSeconds = 0;
     for (let b = 0; b < 256; b++) zoneSeconds += hist[b];
     // Máximo robusto a partir del histograma (percentil 99,7).
-    let maxHr = maxObs;
+    let maxHr = maxObs > 0 ? maxObs : NaN;
     if (zoneSeconds > 600) {
       let acc = 0;
       for (let b = 255; b >= 0; b--) {
         acc += hist[b];
         if (acc >= zoneSeconds * 0.003) {
-          maxHr = Math.max(b, Math.min(maxObs, b + 6));
+          maxHr = Math.max(b, Math.min(maxObs || b, b + 6));
           break;
         }
       }
     }
     const pct = [0, 0.6, 0.7, 0.8, 0.9, 10];
     const zones = [];
-    for (let z = 0; z < 5; z++) {
+    for (let z = 0; z < 5 && Number.isFinite(maxHr); z++) {
       const lo = Math.round(maxHr * pct[z]);
       const hi = z === 4 ? Math.round(maxHr) : Math.round(maxHr * pct[z + 1]) - 1;
       let s = 0;
@@ -269,20 +293,32 @@ export function computeStats(input: ComputeInput): WrappedStats {
       }
       zones.push({ lo, hi, seconds: s });
     }
+    // Sin histograma (solo medias del CSV) no hay zonas que enseñar.
+    if (!zones.length) zoneSeconds = 0;
     hr = { avg: hrSum / hrTime, max: maxHr, beats, zones, zoneSeconds };
   }
 
   // ---- Zapatillas ----
-  const shoeMap = new Map<string, { name: string; distance: number; runs: number }>();
+  const shoeMap = new Map<string, { name: string; distance: number; runs: number; lifetime: number; months: number[] }>();
   for (const r of runs) {
     const g = r.csv.gear;
     if (!g) continue;
-    const s = shoeMap.get(g) ?? { name: g, distance: 0, runs: 0 };
+    const s = shoeMap.get(g) ?? { name: g, distance: 0, runs: 0, lifetime: input.gearLifetime?.[g] ?? 0, months: new Array(12).fill(0) };
+    s.months[r.local.mo - 1] += r.csv.distance;
     s.distance += r.csv.distance;
     s.runs++;
     shoeMap.set(g, s);
   }
   const shoes = [...shoeMap.values()].sort((a, b) => b.distance - a.distance);
+  for (const sh of shoes) sh.lifetime = Math.max(sh.lifetime, sh.distance);
+  const gearDistance = shoes.reduce((a, b) => a + b.distance, 0);
+
+  // ---- Ritmos de cada carrera (para la tira de ritmos cuando no hay evolución por meses) ----
+  const paceSamples: WrappedStats['paceSamples'] = [];
+  for (const r of runs) {
+    const pace = r.csv.distance > 0 ? r.csv.moving / r.csv.distance : NaN;
+    if (r.csv.distance >= 1000 && pace >= 0.15 && pace <= 1.2) paceSamples.push({ pace, distance: r.csv.distance });
+  }
 
   // ---- Lugares ----
   const countryMap = new Map<string, { code: string; runs: number; distance: number }>();
@@ -453,6 +489,7 @@ export function computeStats(input: ComputeInput): WrappedStats {
     elapsed,
     elevation,
     activeDays,
+    firstRunDoy: runs.length ? Math.min(...runs.map((r) => r.local.doy)) : 0,
     activeWeeks: weekDist.size,
     weeksInPeriod,
     avgPace: distance > 0 ? moving / distance : NaN,
@@ -468,6 +505,8 @@ export function computeStats(input: ComputeInput): WrappedStats {
     hours,
     timeOfDay: todKey,
     timeOfDayShare: tod[todKey] / n,
+    habit,
+    sun,
     earlyShare: early / n,
     weekendShare: weekend / n,
     earliest,
@@ -480,6 +519,8 @@ export function computeStats(input: ComputeInput): WrappedStats {
     paceTrend,
     hr,
     shoes,
+    gearDistance,
+    paceSamples,
     countries,
     indoorRuns,
     gpsRuns,
@@ -524,4 +565,27 @@ export function pickArchetype(s: WrappedStats): { key: ArchetypeKey; runnerUp: A
   if (indoorShare >= 0.4 && s.runs >= 6) scores.push(['treadmill', 0.5 + indoorShare]);
   scores.sort((a, b) => b[1] - a[1]);
   return { key: scores[0]?.[0] ?? 'allrounder', runnerUp: scores[1]?.[0] ?? null };
+}
+
+/**
+ * La "hora" de cada runner: franja horaria dominante o, si de verdad corres con el sol cayendo
+ * (o saliendo), la hora dorada calculada con la posición real del sol. Si ninguna franja manda,
+ * "sin horario".
+ */
+export function pickHabit(
+  tod: Record<TimeOfDay, number>,
+  todKey: TimeOfDay,
+  runs: number,
+  sun: WrappedStats['sun'],
+): { key: HabitKey; share: number } {
+  const n = Math.max(1, runs);
+  const topShare = tod[todKey] / n;
+  if (sun && sun.outdoor >= Math.max(4, runs * 0.5)) {
+    const g = sun.golden / n;
+    const sr = sun.sunrise / n;
+    if (g >= 0.3 && g >= topShare * 0.75 && g >= sr) return { key: 'golden', share: g };
+    if (sr >= 0.3 && sr >= topShare * 0.75) return { key: 'sunrise', share: sr };
+  }
+  if (topShare < 0.34) return { key: 'anytime', share: topShare };
+  return { key: todKey, share: topShare };
 }

@@ -56,6 +56,9 @@ export interface Place {
 
 export type TimeOfDay = 'dawn' | 'morning' | 'midday' | 'afternoon' | 'evening' | 'night';
 
+/** Perfil horario: una franja, la hora dorada / el amanecer (según el sol real) o "sin horario". */
+export type HabitKey = TimeOfDay | 'golden' | 'sunrise' | 'anytime';
+
 export type ArchetypeKey =
   | 'earlybird'
   | 'nightowl'
@@ -82,6 +85,8 @@ export interface WrappedStats {
   elapsed: number;
   elevation: number;
   activeDays: number;
+  /** Día del año (local) de la primera carrera. */
+  firstRunDoy: number;
   activeWeeks: number;
   weeksInPeriod: number;
   avgPace: number;
@@ -99,6 +104,10 @@ export interface WrappedStats {
   hours: number[];
   timeOfDay: TimeOfDay;
   timeOfDayShare: number;
+  /** Perfil horario que se enseña (con su porcentaje de carreras). */
+  habit: { key: HabitKey; share: number };
+  /** Fase del sol en las carreras con GPS: hora dorada, amanecer, de noche. */
+  sun: { outdoor: number; golden: number; sunrise: number; dark: number } | null;
   earlyShare: number;
   weekendShare: number;
   earliest: { minutes: number; run: RunRef } | null;
@@ -121,7 +130,12 @@ export interface WrappedStats {
     zoneSeconds: number;
   } | null;
 
-  shoes: { name: string; distance: number; runs: number }[];
+  /** Zapatillas del año; `lifetime` = km totales en el export hasta este año (también años anteriores). */
+  shoes: { name: string; distance: number; runs: number; lifetime: number; months: number[] }[];
+  /** Distancia de las carreras con zapatillas asignadas. */
+  gearDistance: number;
+  /** Ritmo (s/m) y distancia de cada carrera de 1 km o más. */
+  paceSamples: { pace: number; distance: number }[];
   countries: { code: string; runs: number; distance: number }[];
   indoorRuns: number;
   gpsRuns: number;
@@ -145,7 +159,8 @@ export interface WrappedStats {
   races: RunRef[];
   photos: string[];
   others: { category: SportCategory; label: string; count: number; moving: number; distance: number }[];
-  prev: { year: number; distance: number; runs: number; moving: number } | null;
+  /** Año anterior (mismas fechas si este año aún no ha terminado: `partial`). */
+  prev: { year: number; distance: number; runs: number; moving: number; partial: boolean } | null;
   archetype: { key: ArchetypeKey; runnerUp: ArchetypeKey | null };
   /** Kudos que has dado este año (reactions.csv). */
   kudos: number | null;

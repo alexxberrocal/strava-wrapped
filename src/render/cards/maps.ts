@@ -241,6 +241,46 @@ export function longestCard(env: DeckEnv): Card {
           ctx.stroke();
         }
         ctx.restore();
+      } else {
+        // Sin GPS (cinta, reloj sin mapa): una regla con cada kilómetro (o milla) recorrido.
+        const total = fmt.distValue(r.distance);
+        const step = total <= 30 ? 1 : total <= 120 ? 5 : total <= 400 ? 10 : 50;
+        const lineY = box.y + Math.min(box.h * 0.45, 330);
+        const x0 = M, x1 = W - M;
+        const p = ease.inOutCubic(prog(f.t, 1100, 2800));
+        const xAt = (v: number) => x0 + (v / total) * (x1 - x0);
+        ctx.save();
+        ctx.fillStyle = 'rgba(18,18,18,0.10)';
+        roundRect(ctx, x0, lineY - 9, x1 - x0, 18, 9);
+        ctx.fill();
+        ctx.fillStyle = COLORS.orange;
+        if (p > 0) {
+          roundRect(ctx, x0, lineY - 9, Math.max(18, (x1 - x0) * p), 18, 9);
+          ctx.fill();
+        }
+        for (let v = step; v < total; v += step) {
+          const x = xAt(v);
+          const major = (v / step) % 5 === 0;
+          const shown = (v / total) <= p;
+          ctx.fillStyle = shown ? theme.fg : 'rgba(18,18,18,0.18)';
+          ctx.fillRect(x - 1.5, lineY - (major ? 46 : 30), 3, major ? 26 : 14);
+        }
+        ctx.restore();
+        fadeUp(f, 1100, () => {
+          setFont(ctx, 'text', 24, 800);
+          ctx.fillStyle = theme.sub;
+          drawTracked(ctx, `0 ${fmt.distUnit.toUpperCase()}`, x0, lineY + 62, 3, 'left');
+          drawTracked(ctx, `${fmt.dist(r.distance)} ${fmt.distUnit.toUpperCase()}`, x1, lineY + 62, 3, 'right');
+        });
+        const pEnd = ease.outBack(prog(f.t, 3900, 500));
+        if (pEnd > 0) {
+          ctx.save();
+          ctx.fillStyle = theme.fg;
+          ctx.beginPath();
+          ctx.arc(x1 - 9, lineY, 22 * pEnd, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
       }
     },
   };
@@ -267,10 +307,18 @@ function inRing(ring: Position[], x: number, y: number): boolean {
   return inside;
 }
 
+/** Longitud de referencia del panel (la del lugar con más carreras). */
+function panelLon(panel: MapPanel): number {
+  return [...panel.places].sort((a, b) => b.runs - a.runs)[0]?.lon ?? 0;
+}
+
 /** Caja de las partes de los países que contienen lugares (para no encuadrar la Guayana Francesa…). */
 function extentFor(panel: MapPanel, byCode: Map<string, CountryFeature>): [[number, number], [number, number]] {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  const add = (x: number, y: number) => {
+  // Longitudes relativas a la del panel: así el antimeridiano no estira el mapa a todo el mundo.
+  const lon0 = panelLon(panel);
+  const add = (xAbs: number, y: number) => {
+    const x = lon0 + ((((xAbs - lon0 + 540) % 360) - 180));
     x0 = Math.min(x0, x);
     y0 = Math.min(y0, y);
     x1 = Math.max(x1, x);
@@ -299,7 +347,7 @@ function clusterPlaces(places: Place[]): Place[][] {
   for (const p of sorted) {
     let best: (typeof clusters)[number] | null = null;
     for (const c of clusters) {
-      const dx = (p.lon - c.c[1]) * Math.cos((p.lat * Math.PI) / 180);
+      const dx = ((((p.lon - c.c[1] + 540) % 360) - 180) * Math.cos((p.lat * Math.PI) / 180));
       const d = Math.sqrt(dx * dx + (p.lat - c.c[0]) ** 2) * 111;
       if (d < 2600) {
         best = c;
@@ -353,7 +401,9 @@ export function countriesCard(env: DeckEnv): Card {
         panels.map((pn) => {
           const ext = extentFor(pn, byCode);
           const feature = { type: 'MultiPoint' as const, coordinates: [[ext[0][0], ext[0][1]], [ext[1][0], ext[1][1]]] };
-          const proj = geoMercator().fitExtent([[pn.box.x + 14, pn.box.y + 14], [pn.box.x + pn.box.w - 14, pn.box.y + pn.box.h - 14]], feature);
+          const proj = geoMercator()
+            .rotate([-panelLon(pn), 0])
+            .fitExtent([[pn.box.x + 14, pn.box.y + 14], [pn.box.x + pn.box.w - 14, pn.box.y + pn.box.h - 14]], feature);
           return { proj };
         }),
       );
@@ -409,8 +459,9 @@ export function countriesCard(env: DeckEnv): Card {
       ctx.globalAlpha = ease.outCubic(prog(f.t, 1100, 800));
       ctx.drawImage(hot, 0, 0, W, H);
       ctx.restore();
-      // Puntos y etiquetas
+      // Puntos y etiquetas (una por país y sin pisarse entre ellas).
       const labeled = new Set<string>();
+      const placed: { x0: number; x1: number; y0: number; y1: number }[] = [];
       panels.forEach((pn, i) => {
         const { proj } = geo[i];
         const sorted = [...pn.places].sort((a, b) => b.runs - a.runs);
@@ -432,12 +483,25 @@ export function countriesCard(env: DeckEnv): Card {
           const key = p.country ?? '';
           const label = oneCountry ? null : p.country ? fmt.country(p.country) : null;
           if (label && !labeled.has(key)) {
+            setFont(ctx, 'text', i === 0 ? 26 : 22, 800);
+            const tw = ctx.measureText(label).width;
+            const fs = i === 0 ? 26 : 22;
+            const fits = (right: boolean) => {
+              const tx = right ? xy[0] - r - 10 : xy[0] + r + 10;
+              const box = { x0: right ? tx - tw : tx, x1: right ? tx : tx + tw, y0: xy[1] + 9 - fs * 0.8, y1: xy[1] + 9 + fs * 0.25 };
+              const inside = box.x0 >= pn.box.x + 6 && box.x1 <= pn.box.x + pn.box.w - 6 && box.y0 >= pn.box.y + 4 && box.y1 <= pn.box.y + pn.box.h - 4;
+              const free = !placed.some((q) => box.x0 < q.x1 + 6 && box.x1 > q.x0 - 6 && box.y0 < q.y1 + 2 && box.y1 > q.y0 - 2);
+              return inside && free ? box : null;
+            };
+            const prefRight = xy[0] > pn.box.x + pn.box.w * 0.7;
+            const spot = fits(prefRight) ?? fits(!prefRight);
+            if (!spot) return;
+            placed.push(spot);
             labeled.add(key);
+            const right = spot.x0 < xy[0];
             const la = prog(f.t, 1900 + i * 200, 500);
             ctx.save();
             ctx.globalAlpha = la;
-            setFont(ctx, 'text', i === 0 ? 26 : 22, 800);
-            const right = xy[0] > pn.box.x + pn.box.w * 0.7;
             const tx = right ? xy[0] - r - 10 : xy[0] + r + 10;
             ctx.lineWidth = 6;
             ctx.strokeStyle = COLORS.paper;

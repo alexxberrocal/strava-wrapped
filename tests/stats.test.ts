@@ -86,7 +86,7 @@ describe('computeStats', () => {
 
   const s = computeStats({
     year: 2026, name: 'Alex', lang: 'es', runs, others: [ride],
-    prev: { year: 2025, distance: 100000, runs: 10, moving: 30000 },
+    prev: { year: 2025, distance: 100000, runs: 10, moving: 30000, partial: false },
     periodEnd: localTimeOf(Date.UTC(2026, 10, 21, 12), 60), trimMeters: 250,
   });
 
