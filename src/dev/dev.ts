@@ -1,19 +1,22 @@
 // Página de desarrollo: dibuja todas las tarjetas con datos de demo.
 // Parámetros: ?card=id&t=ms&w=540&lang=en&units=imperial&play
-// Casos extremos: &case=ultra | tiny | nogps | longname | partial
-import { ensureFonts } from '../render/fonts';
+// Casos extremos: &case=ultra | tiny | nogps | longname | partial | down
+// Imágenes para compartir el enlace: ?og&lang=xx guarda public/og-xx.jpg (y los iconos).
+import { ensureCardAssets, preloadDeckText } from '../render/fonts';
 import { buildDeck } from '../render/deck';
 import { CardPainter, type DeckEnv } from '../render/card';
 import { demoActivities } from '../demo/demo';
 import { computeStats } from '../stats/compute';
 import { localTimeOf } from '../stats/time';
 import { Fmt } from '../i18n/format';
+import { isLang, type Lang } from '../i18n/langs';
+import { loadSiteStrings, tr } from '../i18n/site';
 import { loadCountries } from '../geo/countries';
 import { BRAND } from '../config';
 import { H, W } from '../render/kit';
 import type { Activity } from '../stats/types';
 
-function statsFor(lang: 'es' | 'en', kase: string | null) {
+function statsFor(lang: Lang, kase: string | null) {
   const d = demoActivities(lang);
   let runs: Activity[] = d.runs;
   let name = d.name;
@@ -30,7 +33,7 @@ function statsFor(lang: 'es' | 'en', kase: string | null) {
     lang,
     runs,
     others: kase === 'tiny' ? [] : d.others,
-    prev: kase === 'tiny' ? null : kase === 'down' ? { year: 2025, distance: 2_480_000, runs: 260, moving: 840_000, partial: true } : { year: 2025, distance: 1_248_000, runs: 137, moving: 421_000, partial: true },
+    prev: kase === 'tiny' ? null : kase === 'down' ? { year: 2025, distance: 2_480_000, runs: 260, moving: 840_000, partial: true } : { year: 2025, distance: 1_999_000, runs: 176, moving: 640_000, partial: true },
     periodEnd: localTimeOf(kase === 'partial' ? Date.UTC(2026, 2, 3) : d.exportDate, 60),
     trimMeters: 250,
   });
@@ -38,15 +41,16 @@ function statsFor(lang: 'es' | 'en', kase: string | null) {
 
 async function main() {
   const q = new URLSearchParams(location.search);
-  const lang = (q.get('lang') as 'es' | 'en') ?? 'es';
+  const qLang = q.get('lang');
+  const lang: Lang = isLang(qLang) ? qLang : 'es';
   const units = (q.get('units') as 'metric' | 'imperial') ?? 'metric';
-  await ensureFonts();
   const countries = await loadCountries().catch(() => null);
   const stats = statsFor(lang, q.get('case'));
-  await ensureFonts(stats.name);
+  await ensureCardAssets(lang, stats.name);
   const env: DeckEnv = { fmt: new Fmt(lang, units), stats, countries, photos: [], brand: BRAND.name, domain: BRAND.domain };
   const deck = buildDeck(env);
   const painter = new CardPainter(env);
+  await preloadDeckText(painter, deck, lang, stats.name);
   if (q.has('og')) {
     await renderSocial(painter, deck, lang);
     return;
@@ -87,9 +91,15 @@ main().catch((e) => {
   document.body.textContent = String(e?.stack ?? e);
 });
 
-/** Genera public/og.png (1200×630) y los iconos, y los guarda vía el servidor de desarrollo. */
-async function renderSocial(painter: CardPainter, deck: import('../render/card').Card[], lang: 'es' | 'en') {
-  const { COLORS, setFont, drawTracked, FONT_DISPLAY } = await import('../render/kit');
+/**
+ * Imagen de vista previa del enlace (1200×630, JPEG ligero para WhatsApp) en el idioma pedido:
+ * public/og-xx.jpg. Con lang=es también regenera los iconos.
+ */
+async function renderSocial(painter: CardPainter, deck: import('../render/card').Card[], lang: Lang) {
+  const { COLORS, setFont, drawTracked, trackedWidth } = await import('../render/kit');
+  const { LOCALE, NO_CASE } = await import('../i18n/langs');
+  await loadSiteStrings(lang);
+  const upper = (t: string) => (NO_CASE.has(lang) ? t : t.toLocaleUpperCase(LOCALE[lang]));
   const og = document.createElement('canvas');
   og.width = 1200;
   og.height = 630;
@@ -130,24 +140,55 @@ async function renderSocial(painter: CardPainter, deck: import('../render/card')
     g.restore();
     g.restore();
   });
-  g.fillStyle = COLORS.orange;
-  g.fillRect(70, 118, 40, 6);
-  setFont(g, 'text', 22, 800);
-  drawTracked(g, lang === 'es' ? 'TU RESUMEN RUNNER DEL AÑO' : 'YOUR YEARLY RUNNING RECAP', 126, 128, 5);
-  g.font = `112px ${FONT_DISPLAY}`;
-  const lines = lang === 'es' ? ['TU AÑO', 'CORRIENDO,', 'EN UNA', 'HISTORIA.'] : ['YOUR', 'RUNNING', 'YEAR, AS', 'A STORY.'];
-  lines.forEach((l, i) => {
-    g.fillStyle = i === 1 ? COLORS.orange : COLORS.ink;
-    g.fillText(l, 66, 248 + i * 104);
-  });
-  setFont(g, 'text', 24, 800);
-  g.fillStyle = COLORS.ink;
-  drawTracked(g, BRAND.domain.toUpperCase(), 70, 590, 4);
-  const save = async (canvas: HTMLCanvasElement, name: string) => {
-    const blob = await new Promise<Blob>((r) => canvas.toBlob((b) => r(b!), 'image/png'));
-    await fetch(`/__save?name=${name}`, { method: 'POST', body: blob });
+  const X = 68, MAXW = 535;
+  const fit = (text: string, kind: 'display' | 'text', size: number, weight: number, track: number, min: number) => {
+    let s = size;
+    for (; s > min; s -= 1) {
+      setFont(g, kind, s, weight);
+      if (trackedWidth(g, text, track * s) <= MAXW) break;
+    }
+    return s;
   };
-  await save(og, 'og.png');
+  // Antetítulo.
+  const kick = upper(tr('hero.kicker', {}, lang));
+  const track = NO_CASE.has(lang) ? 0 : 0.2;
+  const ks = fit(kick, 'text', 22, 800, track, 14);
+  g.fillStyle = COLORS.orange;
+  g.fillRect(X, 104, 40, 6);
+  setFont(g, 'text', ks, 800);
+  drawTracked(g, kick, X + 56, 114, track * ks);
+  // Titular: las líneas del de la portada; la que va en <em>, en naranja.
+  const raw = tr('hero.title', {}, lang).split(/<br\s*\/?>/i);
+  const lines = raw.map((l) => ({ text: upper(l.replace(/<[^>]+>/g, '').trim()), hl: /<em>/i.test(l) }));
+  // Cabe a lo ancho (535 px) y a lo alto (entre el antetítulo y el pie): los ideogramas son más altos.
+  const layout = (sz: number) => {
+    setFont(g, 'display', sz);
+    const m = lines.map((l) => g.measureText(l.text));
+    const ys = [150 + m[0].actualBoundingBoxAscent];
+    for (let i = 1; i < lines.length; i++) ys.push(ys[i - 1] + Math.max(sz * 0.94, m[i - 1].actualBoundingBoxDescent + sz * 0.07 + m[i].actualBoundingBoxAscent));
+    return { ys, end: ys[ys.length - 1] + m[m.length - 1].actualBoundingBoxDescent };
+  };
+  let size = Math.min(...lines.map((l) => fit(l.text, 'display', 104, 400, 0.005, 40)));
+  let lay = layout(size);
+  while (lay.end > 548 && size > 40) lay = layout((size -= 2));
+  setFont(g, 'display', size);
+  lines.forEach((l, i) => {
+    g.fillStyle = l.hl ? COLORS.orange : COLORS.ink;
+    drawTracked(g, l.text, X - 2, lay.ys[i], size * 0.005);
+  });
+  // Pie: dominio y "Compatible con Strava".
+  const foot = `${BRAND.domain.toUpperCase()}  ·  ${upper(tr('hero.compat', {}, lang).split(' · ')[0])}`;
+  const fs = fit(foot, 'text', 22, 800, NO_CASE.has(lang) ? 0.05 : 0.16, 14);
+  setFont(g, 'text', fs, 800);
+  g.fillStyle = COLORS.ink;
+  drawTracked(g, foot, X, 592, (NO_CASE.has(lang) ? 0.05 : 0.16) * fs);
+  const save = async (canvas: HTMLCanvasElement, name: string) => {
+    const type = name.endsWith('.jpg') ? 'image/jpeg' : 'image/png';
+    const blob = await new Promise<Blob>((r) => canvas.toBlob((b) => r(b!), type, 0.86));
+    await fetch(`/__save?name=${name}`, { method: 'POST', body: blob });
+    return blob.size;
+  };
+  const bytes = await save(og, `og-${lang}.jpg`);
   const icon = (size: number) => {
     const c = document.createElement('canvas');
     c.width = c.height = size;
@@ -173,8 +214,10 @@ async function renderSocial(painter: CardPainter, deck: import('../render/card')
     k.stroke();
     return c;
   };
-  await save(icon(180), 'apple-touch-icon.png');
-  await save(icon(512), 'icon-512.png');
+  if (lang === 'es') {
+    await save(icon(180), 'apple-touch-icon.png');
+    await save(icon(512), 'icon-512.png');
+  }
   document.body.append(og);
-  document.title = 'OG listo';
+  document.title = `OG listo ${lang} ${Math.round(bytes / 1024)} KB`;
 }

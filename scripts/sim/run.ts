@@ -8,6 +8,7 @@
  *   - incoherencias en las estadísticas
  *
  *   npx tsx scripts/sim/run.ts --n=300 --seed=1 --sheets=flagged
+ *   --langs=all (o --langs=ru,zh,de): cada atleta en esos idiomas (por defecto, el suyo)
  *
  * Resultado en samples/sim/ (carpeta ignorada por git): report.txt, report.json y hojas PNG.
  */
@@ -25,6 +26,9 @@ const SHEETS = (args.sheets ?? 'flagged') as 'all' | 'flagged' | 'none' | 'speci
 const ONLY = args.only ?? null;
 const OUT = join(ROOT, args.out ?? 'samples/sim');
 const BOTH = args.both === 'true';
+const { LANGS, isLang } = await import('../../src/i18n/langs');
+type Lang = import('../../src/i18n/langs').Lang;
+const ONLY_LANGS: Lang[] | null = args.langs ? (args.langs === 'all' ? [...LANGS] : args.langs.split(',').filter(isLang)) : null;
 
 const { catalog, generateProfile } = await import('./athletes');
 const { enrichActivities, finishYear, splitYear, wrappedStats } = await import('../../src/app/enrich');
@@ -32,7 +36,9 @@ const { Countries } = await import('../../src/geo/countries');
 const { Cities } = await import('../../src/geo/cities');
 const { buildDeck } = await import('../../src/render/deck');
 const { CardPainter } = await import('../../src/render/card');
-const { Fmt } = await import('../../src/i18n/format');
+const { Fmt, registerCardMessages } = await import('../../src/i18n/format');
+// Todos los catálogos de las tarjetas (en la web se descargan al elegir idioma).
+for (const l of LANGS) if (l !== 'es') registerCardMessages(l, (await import(`../../src/i18n/cards/${l}.ts`)).default);
 const { W, H, THEMES } = await import('../../src/render/kit');
 type DeckEnv = import('../../src/render/card').DeckEnv;
 type Card = import('../../src/render/card').Card;
@@ -56,10 +62,15 @@ const add = (i: Issue) => {
 };
 
 // Rangos de las tipografías (latin + latin-ext + vietnamese de Google Fonts).
-const COVERED = /^[\u0000-ɏə̀-ͯʰ-˿Ḁ-ỿ -⁯₠-⃏℀-⅏←-↓−∕﻿�°×]*$/u;
+// + cirílico (Oswald) y chino, japonés y coreano (Noto Sans): ver src/render/fonts.ts.
+const COVERED = /^[\u0000-ɏə̀-ͯʰ-˿Ḁ-ỿ -⁯₠-⃏℀-⅏←-↓−∕﻿�°×Ѐ-ԯᄀ-ᇿ　-ヿ㄰-㆏㐀-䶿一-鿿가-힯豈-﫿＀-￯]*$/u;
 
 const specs = catalog(N, SEED).filter((s) => !ONLY || s.id === ONLY || s.traits[0] === ONLY);
 mkdirSync(join(OUT, 'sheets'), { recursive: true });
+// Lienzos reutilizados (la memoria nativa de los canvas no la ve el recolector de basura de V8).
+const small = createCanvas(Math.round(W / 2), Math.round(H / 2));
+const big = createCanvas(W, H);
+
 const t0 = Date.now();
 const deckStats: Record<string, number> = {};
 let profilesWithRuns = 0;
@@ -77,16 +88,18 @@ for (const [pi, spec] of specs.entries()) {
     continue;
   }
   profilesWithRuns++;
-  const langs: ('es' | 'en')[] = BOTH ? ['es', 'en'] : [spec.lang];
+  const langs: Lang[] = ONLY_LANGS ?? (BOTH ? ['es', 'en'] : [spec.lang]);
+  const tagLang = langs.length > 1;
   for (const lang of langs) {
+    const pid = tagLang ? `${spec.id}-${lang}` : spec.id;
     let stats: WrappedStats;
     try {
       stats = wrappedStats({ activities: prof.activities, exportDate: spec.exportDate, extras: prof.extras }, spec.year, runs, others, { name: spec.name, lang, trimMeters: spec.trim ? 250 : 0 }, runTypes);
     } catch (err) {
-      add({ kind: 'excepción en estadísticas', severity: 'error', profile: spec.id, card: '-', detail: String((err as Error)?.stack ?? err).slice(0, 400) });
+      add({ kind: 'excepción en estadísticas', severity: 'error', profile: pid, card: '-', detail: String((err as Error)?.stack ?? err).slice(0, 400) });
       continue;
     }
-    checkStats(spec.id, stats);
+    checkStats(pid, stats);
     const photos = stats.photos.length >= 3 ? fakePhotos(Math.min(5, stats.photos.length)) : [];
     const env: DeckEnv = { fmt: new Fmt(lang, spec.units), stats, countries, photos: photos as unknown as ImageBitmap[], brand: 'RUNRECAP', domain: 'runrecap.app' };
     const warns: string[] = [];
@@ -94,11 +107,11 @@ for (const [pi, spec] of specs.entries()) {
     console.warn = (...a: unknown[]) => warns.push(a.map(String).join(' '));
     const deck = buildDeck(env, { cityMap: spec.cityMap });
     console.warn = origWarn;
-    for (const w of warns) add({ kind: 'tarjeta que falla al crearse', severity: 'error', profile: spec.id, card: '-', detail: w.slice(0, 300) });
+    for (const w of warns) add({ kind: 'tarjeta que falla al crearse', severity: 'error', profile: pid, card: '-', detail: w.slice(0, 300) });
     for (const c of deck) deckStats[c.id] = (deckStats[c.id] ?? 0) + 1;
     summaries.push(`${spec.id.padEnd(26)} ${lang} ${String(stats.runs).padStart(4)} carreras ${String(Math.round(stats.distance / 1000)).padStart(6)} km  [${deck.map((c) => c.id).join(' ')}]  ${spec.traits.join(' · ')}`);
     const painter = new CardPainter(env);
-    for (const card of deck) auditCard(spec.id, painter, card, env);
+    for (const card of deck) auditCard(pid, painter, card, env);
     if (args.full) {
       // Tarjetas a tamaño real (para revisar a ojo): --full --card=habits,pace
       mkdirSync(join(OUT, 'full'), { recursive: true });
@@ -110,10 +123,19 @@ for (const [pi, spec] of specs.entries()) {
         writeFileSync(join(OUT, 'full', `${spec.id}-${lang}-${card.id}.png`), c.toBuffer('image/png'));
       }
     }
-    const wantSheet = SHEETS === 'all' || (SHEETS === 'flagged' && flagged.has(spec.id)) || (SHEETS === 'special' && !spec.id.startsWith('r'));
-    if (wantSheet) sheet(`${spec.id}${BOTH ? '-' + lang : ''}`, painter, deck, spec.traits, stats);
+    const wantSheet = SHEETS === 'all' || (SHEETS === 'flagged' && flagged.has(pid)) || (SHEETS === 'special' && !spec.id.startsWith('r'));
+    if (wantSheet) sheet(`${spec.id}${tagLang ? '-' + lang : ''}`, painter, deck, spec.traits, stats);
   }
-  if ((pi + 1) % 25 === 0) process.stdout.write(`  ${pi + 1}/${specs.length} perfiles · ${issues.length} avisos · ${Math.round((Date.now() - t0) / 1000)} s\n`);
+  // Los lienzos nativos se liberan en finalizadores que solo corren cuando el bucle de eventos respira.
+  (globalThis as { gc?: () => void }).gc?.();
+  await new Promise((r) => setImmediate(r));
+  (globalThis as { gc?: () => void }).gc?.();
+  await new Promise((r) => setTimeout(r, 0));
+  if ((pi + 1) % (args.mem ? 5 : 25) === 0) {
+    const m = process.memoryUsage();
+    const mem = args.mem ? ` · rss ${Math.round(m.rss / 1e6)} MB, heap ${Math.round(m.heapUsed / 1e6)} MB, externa ${Math.round(m.external / 1e6)} MB` : '';
+    process.stdout.write(`  ${pi + 1}/${specs.length} perfiles · ${issues.length} avisos · ${Math.round((Date.now() - t0) / 1000)} s${mem}\n`);
+  }
 }
 
 // ------------------------------------------------------------------ comprobaciones
@@ -139,8 +161,8 @@ function checkStats(id: string, s: WrappedStats) {
 }
 
 function auditCard(id: string, painter: InstanceType<typeof CardPainter>, card: Card, env: DeckEnv) {
+  void env;
   // 1) Animación: varios instantes a media resolución (excepciones y NaN).
-  const small = createCanvas(Math.round(W / 2), Math.round(H / 2));
   const sctx = small.getContext('2d') as unknown as CanvasRenderingContext2D;
   REC.nonFinite = [];
   for (const t of [0, 200, 650, 1300, 2300, 3600, card.duration * 0.8]) {
@@ -152,8 +174,8 @@ function auditCard(id: string, painter: InstanceType<typeof CardPainter>, card: 
     }
   }
   // 2) Estado final a tamaño real, sin grano ni cabecera: textos y píxeles.
-  const big = createCanvas(W, H);
   const ctx = big.getContext('2d') as unknown as CanvasRenderingContext2D;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   REC.on = true;
   REC.target = big;
   REC.texts = [];

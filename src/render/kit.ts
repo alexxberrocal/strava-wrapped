@@ -5,6 +5,8 @@ export const H = 1920;
 export const M = 96; // margen lateral
 export const CW = W - 2 * M; // ancho útil
 
+import type { Script } from '../i18n/langs';
+
 export type Ctx = CanvasRenderingContext2D;
 
 export const COLORS = {
@@ -75,8 +77,42 @@ export const THEMES: Record<ThemeName, Theme> = {
   },
 };
 
-export const FONT_DISPLAY = 'Anton, "Arial Narrow", Impact, sans-serif';
-export const FONT_TEXT = 'Archivo, "Helvetica Neue", Arial, sans-serif';
+/*
+ * Tipografías según la escritura del idioma. Titulares: Anton; en ruso, Oswald (alias "RR Display
+ * Cyr") para que todo el titular sea de la misma familia; en chino, japonés y coreano, las cifras y
+ * letras latinas siguen en Anton y los caracteres propios van en Noto Sans Black (alias "RR Display
+ * SC/JP/KR", ver fonts.ts). El resto de alias quedan detrás por si un nombre trae otra escritura.
+ * Texto corrido: Archivo y, para letras que no tiene, la del sistema.
+ */
+const RR = { cyrillic: '"RR Display Cyr"', sc: '"RR Display SC"', ja: '"RR Display JP"', ko: '"RR Display KR"' };
+const DISPLAY_TAIL = '"Arial Narrow", Impact, sans-serif';
+const DISPLAY_STACKS: Record<Script, string> = {
+  latin: `Anton, ${RR.cyrillic}, ${RR.sc}, ${RR.ja}, ${RR.ko}, ${DISPLAY_TAIL}`,
+  cyrillic: `${RR.cyrillic}, Anton, ${RR.sc}, ${RR.ja}, ${RR.ko}, ${DISPLAY_TAIL}`,
+  sc: `Anton, ${RR.sc}, ${RR.ja}, ${RR.ko}, ${RR.cyrillic}, "PingFang SC", "Microsoft YaHei", ${DISPLAY_TAIL}`,
+  ja: `Anton, ${RR.ja}, ${RR.sc}, ${RR.ko}, ${RR.cyrillic}, "Hiragino Sans", "Yu Gothic", ${DISPLAY_TAIL}`,
+  ko: `Anton, ${RR.ko}, ${RR.ja}, ${RR.sc}, ${RR.cyrillic}, "Apple SD Gothic Neo", "Malgun Gothic", ${DISPLAY_TAIL}`,
+};
+const TEXT_STACKS: Record<Script, string> = {
+  latin: 'Archivo, "Helvetica Neue", Arial, sans-serif',
+  cyrillic: 'Archivo, "Helvetica Neue", "Segoe UI", Roboto, Arial, sans-serif',
+  sc: 'Archivo, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Noto Sans CJK SC", sans-serif',
+  ja: 'Archivo, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", YuGothic, Meiryo, "Noto Sans JP", "Noto Sans CJK JP", sans-serif',
+  ko: 'Archivo, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Noto Sans CJK KR", sans-serif',
+};
+/** Familia que manda en los titulares de cada escritura (para saber si ya ha cargado). */
+const DISPLAY_MAIN: Record<Script, string> = { latin: 'Anton', cyrillic: RR.cyrillic, sc: 'Anton', ja: 'Anton', ko: 'Anton' };
+
+let script: Script = 'latin';
+export let FONT_DISPLAY = DISPLAY_STACKS.latin;
+export let FONT_TEXT = TEXT_STACKS.latin;
+
+/** Escritura de las tarjetas que se van a dibujar (la fija CardPainter.paint según el idioma). */
+export function useScript(s: Script) {
+  script = s;
+  FONT_DISPLAY = DISPLAY_STACKS[s];
+  FONT_TEXT = TEXT_STACKS[s];
+}
 
 export function setFont(ctx: Ctx, kind: 'display' | 'text', size: number, weight = 400) {
   ctx.font = kind === 'display' ? `${size}px ${FONT_DISPLAY}` : `${weight} ${size}px ${FONT_TEXT}`;
@@ -163,29 +199,73 @@ export interface RichLayout {
   height: number;
 }
 
+// Espacios por los que se puede partir una línea (todos menos los duros U+00A0 y U+202F).
+const SOFT_SPACE = new RegExp('([^\\S\\u00a0\\u202f]+)');
+const SOFT_SPACE_ONLY = new RegExp('^[^\\S\\u00a0\\u202f]+$');
+
+/**
+ * Cortes de línea dentro del texto sin espacios (chino, japonés): se puede partir entre dos
+ * caracteres si uno es ideograma o kana, salvo que la línea fuera a empezar por puntuación de
+ * cierre (。、！？」…, kana pequeños, ー) o terminar en una de apertura (「（…). Los espacios duros
+ * (cifra + unidad) nunca se parten. El coreano separa palabras con espacios: no se toca.
+ */
+const CJK_BREAKABLE = /[\u2E80-\u2FFF\u3040-\u30FF\u3100-\u312F\u31A0-\u31FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/;
+const NO_LINE_START = /[、。，．,.:;：；！？!?）)\]」』】〕〉》”’ー々〜ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮヵヶ・％%]/;
+const NO_LINE_END = /[（(\[「『【〔〈《“‘]/;
+const GLUE = /[\u00a0\u202f\u2060]/;
+export function canBreakBetween(a: string, b: string): boolean {
+  if (!a || !b || GLUE.test(a) || GLUE.test(b)) return false;
+  if (!CJK_BREAKABLE.test(a) && !CJK_BREAKABLE.test(b)) return false;
+  return !NO_LINE_START.test(b) && !NO_LINE_END.test(a);
+}
+
 export function layoutRich(ctx: Ctx, text: string, maxWidth: number, size: number, weight = 500, hlWeight = 700, lineHeight = 1.32): RichLayout {
   const segs = parseRich(text);
   // Tokens: palabras y espacios, conservando el estilo. Las piezas sin espacio entre medias
-  // (p. ej. "**53 maratones**." -> "maratones" + ".") forman un grupo que no se parte.
+  // (p. ej. "**53 maratones**." -> "maratones" + ".") forman un grupo que no se parte, salvo en
+  // los puntos de corte del chino y el japonés (BRK: corte posible sin espacio).
   type Tok = { text: string; hl: boolean; space: boolean };
-  const tokens: Tok[] = [];
+  const BRK = 'brk' as const;
+  const tokens: (Tok | typeof BRK)[] = [];
+  let lastChar = '';
   for (const sg of segs) {
-    for (const p of sg.text.split(/(\s+)/)) {
-      if (p) tokens.push({ text: p, hl: sg.hl, space: /^\s+$/.test(p) });
+    // Los espacios duros (número + unidad: "12 km") no parten la línea.
+    for (const p of sg.text.split(SOFT_SPACE)) {
+      if (!p) continue;
+      if (SOFT_SPACE_ONLY.test(p)) {
+        tokens.push({ text: p, hl: sg.hl, space: true });
+        lastChar = '';
+        continue;
+      }
+      const chars = [...p];
+      let start = 0;
+      if (canBreakBetween(lastChar, chars[0])) tokens.push(BRK);
+      for (let i = 1; i < chars.length; i++) {
+        if (!canBreakBetween(chars[i - 1], chars[i])) continue;
+        tokens.push({ text: chars.slice(start, i).join(''), hl: sg.hl, space: false }, BRK);
+        start = i;
+      }
+      tokens.push({ text: chars.slice(start).join(''), hl: sg.hl, space: false });
+      lastChar = chars[chars.length - 1];
     }
   }
-  const groups: (Tok[] | Tok)[] = [];
+  const groups: (Tok[] | Tok | typeof BRK)[] = [];
+  let open = false;
   for (const t of tokens) {
-    const last = groups[groups.length - 1];
-    if (t.space) groups.push(t);
-    else if (Array.isArray(last)) last.push(t);
-    else groups.push([t]);
+    if (t === BRK || t.space) {
+      groups.push(t);
+      open = false;
+    } else if (open) (groups[groups.length - 1] as Tok[]).push(t);
+    else {
+      groups.push([t]);
+      open = true;
+    }
   }
   // "56 km", "152 m", "154 ppm": el número y su unidad nunca se separan.
   const UNIT = /^(km|mi|m|ft|h|min|ppm|bpm|kcal|°c|°f)[.,;:!?)]*$/i;
   for (let i = 1; i < groups.length - 1; i++) {
     const prev = groups[i - 1], sp = groups[i], next = groups[i + 1];
-    if (Array.isArray(prev) && !Array.isArray(sp) && Array.isArray(next) && /\d$/.test(prev[prev.length - 1].text) && UNIT.test(next[0].text)) {
+    if (Array.isArray(prev) && sp !== BRK && !Array.isArray(sp) && Array.isArray(next) && /\d$/.test(prev[prev.length - 1].text) && UNIT.test(next[0].text)) {
       prev.push(sp, ...next);
       groups.splice(i, 2);
       i--;
@@ -205,6 +285,7 @@ export function layoutRich(ctx: Ctx, text: string, maxWidth: number, size: numbe
     }
   };
   for (const g of groups) {
+    if (g === BRK) continue;
     if (!Array.isArray(g)) {
       if (cur.length) {
         const w = widthOf(' ', g.hl);
@@ -405,7 +486,7 @@ export function grainPattern(ctx: Ctx): CanvasPattern | null {
 const capCache = new Map<string, number>();
 /** Proporción alto-de-mayúscula / tamaño para la fuente display (medida real). */
 export function capRatio(ctx: Ctx, kind: 'display' | 'text' = 'display', weight = 400): number {
-  const k = `${kind}:${weight}:${ctx.font.includes('Anton') ? 'a' : 'x'}`;
+  const k = `${kind}:${weight}:${script}`;
   let r = capCache.get(k);
   if (r == null) {
     const prev = ctx.font;
@@ -414,7 +495,7 @@ export function capRatio(ctx: Ctx, kind: 'display' | 'text' = 'display', weight 
     r = m.actualBoundingBoxAscent / 200;
     ctx.font = prev;
     // Si la fuente aún no ha cargado, no cacheamos el valor de la de respaldo.
-    if (typeof document !== 'undefined' && document.fonts && !document.fonts.check(kind === 'display' ? '200px Anton' : `${weight} 200px Archivo`)) return r || 0.72;
+    if (typeof document !== 'undefined' && document.fonts && !document.fonts.check(kind === 'display' ? `200px ${DISPLAY_MAIN[script]}` : `${weight} 200px Archivo`, '0H')) return r || 0.72;
     capCache.set(k, r || 0.72);
   }
   return r;

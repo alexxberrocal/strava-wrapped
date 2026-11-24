@@ -42,6 +42,16 @@ export function setupCanvasEnv(root: string) {
     const dir = join(root, 'node_modules', '@fontsource', pkg, 'files');
     for (const f of readdirSync(dir)) if (f.endsWith('-normal.woff2')) GlobalFonts.registerFromPath(join(dir, f), family);
   }
+  // Titulares en cirílico, chino, japonés y coreano: los mismos alias que la web (scripts/gen-fonts.ts).
+  for (const [pkg, family, weight] of [
+    ['oswald', 'RR Display Cyr', '700'],
+    ['noto-sans-sc', 'RR Display SC', '900'],
+    ['noto-sans-jp', 'RR Display JP', '900'],
+    ['noto-sans-kr', 'RR Display KR', '900'],
+  ]) {
+    const dir = join(root, 'node_modules', '@fontsource', pkg, 'files');
+    for (const f of readdirSync(dir)) if (f.endsWith(`-${weight}-normal.woff2`)) GlobalFonts.registerFromPath(join(dir, f), family);
+  }
   const g = globalThis as Record<string, unknown>;
   g.Path2D = Path2D;
   g.document = {

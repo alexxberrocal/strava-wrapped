@@ -113,6 +113,35 @@ export function simplifyIndices(xs: Float64Array, ys: Float64Array, tol: number)
 }
 
 /** Mejor tiempo para cubrir `target` metros (ventana deslizante con interpolación). */
+/**
+ * Qué puntos GPS se quedan: fuera los que están mucho más lejos del centro de la ruta que el
+ * resto (3 veces el percentil 90 de las distancias, mínimo 2 km) y los que tienen una hora a
+ * más de 4 días de la mediana. Devuelve null si no hay nada que quitar.
+ */
+export function robustKeep(lat: number[], lon: number[], time: number[]): boolean[] | null {
+  const n = lat.length;
+  const med = (arr: number[]) => {
+    const s = arr.filter(Number.isFinite).sort((a, b) => a - b);
+    return s.length ? s[Math.floor(s.length / 2)] : NaN;
+  };
+  const mLat = med(lat);
+  // Longitudes relativas al primer punto: el antimeridiano no confunde a la mediana.
+  const lon0 = lon[0];
+  const mLon = lon0 + med(lon.map((x) => ((x - lon0 + 540) % 360) - 180));
+  const dist = lat.map((la, k) => haversine(mLat, mLon, la, lon[k]));
+  const p90 = [...dist].sort((a, b) => a - b)[Math.floor(n * 0.9)];
+  const limit = Math.max(2000, p90 * 3);
+  const mT = med(time);
+  let drop = 0;
+  const keep = dist.map((d, k) => {
+    const farInTime = Number.isFinite(mT) && Number.isFinite(time[k]) && Math.abs(time[k] - mT) > 4 * 86400;
+    const ok = d <= limit && !farInTime;
+    if (!ok) drop++;
+    return ok;
+  });
+  return drop ? keep : null;
+}
+
 export function bestEffort(time: ArrayLike<number>, cum: ArrayLike<number>, target: number): number {
   const n = cum.length;
   if (n < 2 || cum[n - 1] - cum[0] < target * 0.999) return NaN;
@@ -234,6 +263,26 @@ export function summarizeTrack(d: DecodedTrack, opts: SummarizeOptions): TrackSu
     }
   }
 
+  // Puntos lejísimos del resto (bytes corruptos, coordenadas a cero, saltos de días en la hora):
+  // fuera, o la carrera acabaría en otro país y el mapa se encogería a un punto.
+  if (gLat.length >= 10) {
+    const keep = robustKeep(gLat, gLon, gTime);
+    if (keep) {
+      let w = 0;
+      for (let k = 0; k < keep.length; k++) {
+        if (!keep[k]) continue;
+        gLat[w] = gLat[k];
+        gLon[w] = gLon[k];
+        gTime[w] = gTime[k];
+        w++;
+      }
+      gLat.length = gLon.length = gTime.length = w;
+    }
+  }
+  // Hora de inicio imposible (año 0, 1970, 9999…): la del primer punto bueno o ninguna.
+  const sane = (ms: number | null) => ms != null && ms > Date.UTC(1990, 0, 1) && ms < Date.UTC(2100, 0, 1);
+  if (!sane(res.startUtc)) res.startUtc = gTime.length && sane(gTime[0] * 1000) ? gTime[0] * 1000 : null;
+
   const gN = gLat.length;
   const gCum = new Float64Array(gN);
   for (let k = 1; k < gN; k++) gCum[k] = gCum[k - 1] + haversine(gLat[k - 1], gLon[k - 1], gLat[k], gLon[k]);
@@ -248,7 +297,9 @@ export function summarizeTrack(d: DecodedTrack, opts: SummarizeOptions): TrackSu
       if (gLon[k] > maxLo) maxLo = gLon[k];
     }
     const diag = haversine(minLa, minLo, maxLa, maxLo);
-    if (diag > 100) {
+    // Un GPS que mide más del triple que Strava está roto (fichero corrupto): mejor sin mapa.
+    const broken = opts.csvDistance > 500 && res.gpsDistance > opts.csvDistance * 3 + 2000;
+    if (diag > 100 && !broken) {
       res.hasGps = true;
       res.bbox = [minLa, minLo, maxLa, maxLo];
       res.start = [gLat[0], gLon[0]];

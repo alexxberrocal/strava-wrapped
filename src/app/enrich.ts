@@ -1,3 +1,4 @@
+import type { Lang } from '../i18n/langs';
 import type { CsvActivity } from '../parse/activitiesCsv';
 import type { TrackSummary } from '../parse/track';
 import type { Countries } from '../geo/countries';
@@ -161,7 +162,7 @@ export interface WrappedContext {
 
 export interface WrappedOptions {
   name: string;
-  lang: 'es' | 'en';
+  lang: Lang;
   trimMeters: number;
 }
 

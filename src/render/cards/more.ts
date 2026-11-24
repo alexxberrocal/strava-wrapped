@@ -4,7 +4,8 @@ import type { Card, DeckEnv, Frame } from '../card';
 import { COLORS, CW, H, M, W, capRatio, drawTracked, fitSize, layoutRich, projectRoutes, roundRect, setFont, traceFull, type Box } from '../kit';
 import { localFromDoy, daysInYear } from '../../stats/time';
 import { PIZZA_KCAL, MARATHON_M } from '../../stats/equivalences';
-import { archetypeText, cleanName, effortLabel, habitSentence, habitTitle, hoursLabel, marathonsLabel, sportLabel, splitLines } from './common';
+import type { CardKey } from '../../i18n/cards/es';
+import { archetypeText, cleanName, effortLabel, habitSentence, habitTitle, marathonsLabel, sportLabel, splitLines } from './common';
 
 const KICK = 330;
 
@@ -26,45 +27,33 @@ export function calendarCard(env: DeckEnv): Card {
     duration: 7500,
     render(f) {
       const { ctx, theme } = f;
-      kicker(f, fmt.t('Tu calendario', 'Your calendar'), M, KICK);
+      kicker(f, fmt.m('calendar.kicker'), M, KICK);
       const hs = 150;
       const y = topBaseline(f, hs);
-      headline(f, [fmt.t(`${s.activeDays} días`, `${s.activeDays} days`), fmt.t('corriendo', 'of running')], M, y, hs, { start: 120, colors: [COLORS.orange, theme.fg], lineHeight: 0.95 });
+      headline(f, fmt.lines('calendar.title', { n: s.activeDays }), M, y, hs, { start: 120, colors: [COLORS.orange, theme.fg], lineHeight: 0.95 });
       const parts: string[] = [];
       if (streak.days >= 2) {
         const a = localFromDoy(year, streak.startDoy), b = localFromDoy(year, streak.endDoy);
-        parts.push(fmt.t(
-          `Tu racha más larga: **${streak.days} días seguidos**, del ${a.mo === b.mo ? a.d : fmt.date(a)} al ${fmt.date(b)}.`,
-          `Longest streak: **${streak.days} days in a row**, ${fmt.dateShort(a)}–${fmt.dateShort(b)}.`,
-        ));
+        parts.push(fmt.m('calendar.streak', { n: streak.days, range: fmt.dateRange(a, b, true) }));
       }
       const idle = s.weeksInPeriod - s.activeWeeks;
       const g = s.goal;
       if (g) {
         const target = fmt.distWithUnit(g.target, g.target % 1000 === 0 || g.target >= 100000 ? 0 : 1);
-        if (g.period === 'week')
-          parts.push(fmt.t(
-            `Tu objetivo de **${target} por semana**: cumplido **${g.hit} de ${g.total} semanas**.`,
-            `Your goal of **${target} a week**: hit in **${g.hit} of ${g.total} weeks**.`,
-          ));
-        else if (g.period === 'month')
-          parts.push(fmt.t(
-            `Tu objetivo de **${target} al mes**: cumplido **${g.hit} de ${g.total} meses**.`,
-            `Your goal of **${target} a month**: hit in **${g.hit} of ${g.total} months**.`,
-          ));
+        if (g.period === 'week') parts.push(fmt.m('calendar.goalWeek', { target, hit: g.hit, total: g.total }));
+        else if (g.period === 'month') parts.push(fmt.m('calendar.goalMonth', { target, hit: g.hit, total: g.total }));
         else {
           const pct = g.hit / g.total;
-          parts.push(pct >= 1
-            ? fmt.t(`Tu objetivo anual de **${target}**: ¡**cumplido**!`, `Your yearly goal of **${target}**: **done**!`)
-            : fmt.t(`Tu objetivo anual de **${target}**: vas por el **${fmt.pct(pct)}**.`, `Your yearly goal of **${target}**: **${fmt.pct(pct)}** there.`));
+          parts.push(pct >= 1 ? fmt.m('calendar.goalYearDone', { target }) : fmt.m('calendar.goalYear', { target, pct: fmt.pct(pct) }));
         }
-      } else parts.push(
-        idle <= 0
-          ? fmt.t('Y **ni una sola semana** sin correr.', 'And **not a single week** without a run.')
-          : idle <= 8
-            ? fmt.t(`Solo **${idle} ${idle === 1 ? 'semana' : 'semanas'}** sin correr.`, `Only **${idle} ${idle === 1 ? 'week' : 'weeks'}** without a run.`)
-            : fmt.t(`Corriste en **${s.activeWeeks} de ${s.weeksInPeriod} semanas**.`, `You ran in **${s.activeWeeks} of ${s.weeksInPeriod} weeks**.`),
-      );
+      } else
+        parts.push(
+          idle <= 0
+            ? fmt.m('calendar.noIdle')
+            : idle <= 8
+              ? fmt.m('calendar.idle', { n: idle })
+              : fmt.m('calendar.weeks', { active: s.activeWeeks, total: s.weeksInPeriod }),
+        );
       paragraph(f, parts.join(' '), M, y + hs * 0.95 + 88, CW, 37, { start: 550 });
 
       // 12 mini calendarios (4 × 3)
@@ -84,7 +73,7 @@ export function calendarCard(env: DeckEnv): Card {
         ctx.globalAlpha = prog(f.t, 450 + m * 60, 400);
         setFont(ctx, 'text', 21, 800);
         ctx.fillStyle = theme.sub;
-        drawTracked(ctx, fmt.monthShort(m).toUpperCase().replace('.', ''), x0, y0 + 20, 3);
+        drawTracked(ctx, fmt.upper(fmt.monthShort(m)), x0, y0 + 20, fmt.cased ? 3 : 0);
         ctx.restore();
         for (let d = 0; d < nDays; d++) {
           const doy = startDoy + d;
@@ -125,7 +114,7 @@ export function calendarCard(env: DeckEnv): Card {
         const y2 = top + 3 * monthH + 10;
         setFont(ctx, 'text', 21, 800);
         ctx.fillStyle = theme.sub;
-        const wLess = drawTracked(ctx, fmt.t('MENOS', 'LESS'), M, y2, 3);
+        const wLess = drawTracked(ctx, fmt.upper(fmt.m('calendar.less')), M, y2, fmt.cased ? 3 : 0);
         [0.38, 0.6, 0.8, 1].forEach((al, i) => {
           ctx.save();
           ctx.globalAlpha = al;
@@ -134,7 +123,7 @@ export function calendarCard(env: DeckEnv): Card {
           ctx.fill();
           ctx.restore();
         });
-        drawTracked(ctx, fmt.t(`MÁS ${fmt.distUnit.toUpperCase()}`, 'MORE'), M + wLess + 16 + 4 * 30 + 10, y2, 3);
+        drawTracked(ctx, fmt.upper(fmt.m('calendar.more', { unit: fmt.distUnit })), M + wLess + 16 + 4 * 30 + 10, y2, fmt.cased ? 3 : 0);
       });
     },
   };
@@ -156,10 +145,10 @@ export function recordsCard(env: DeckEnv): Card {
     duration: 7500,
     render(f) {
       const { ctx, theme } = f;
-      kicker(f, fmt.t('Mejores marcas', 'Best efforts'), M, KICK);
+      kicker(f, fmt.m('records.kicker'), M, KICK);
       const hs = 140;
       const y = topBaseline(f, hs);
-      headline(f, [fmt.t('Tus marcas', 'Your bests'), fmt.t(`de ${s.year}`, `of ${s.year}`)], M, y, hs, { start: 120, colors: [theme.fg, COLORS.orange], lineHeight: 0.95 });
+      headline(f, fmt.lines('records.title', { year: String(s.year) }), M, y, hs, { start: 120, colors: [theme.fg, COLORS.orange], lineHeight: 0.95 });
       const top0 = y + hs * 0.95 + 70;
       // Pocas marcas: filas más altas y el bloque algo centrado (sin hueco enorme abajo).
       const avail = 1760 - top0;
@@ -206,13 +195,13 @@ export function habitsCard(env: DeckEnv): Card {
     duration: 7500,
     render(f) {
       const { ctx, theme } = f;
-      kicker(f, fmt.t('Tu hora', 'Your hour'), M, KICK);
+      kicker(f, fmt.m('habits.kicker'), M, KICK);
       const hs = Math.min(150, fitSize(ctx, l2, 'display', 150, CW), fitSize(ctx, l1, 'display', 150, CW));
       const y = topBaseline(f, hs);
       headline(f, [l1, l2], M, y, hs, { start: 120, colors: [theme.fg, COLORS.orange], lineHeight: 0.95 });
       paragraph(
         f,
-        `${habitSentence(fmt, key, s.habit.share)} ${fmt.t(`Tu día favorito: el **${fmt.weekday(s.favoriteWeekday)}**.`, `Favourite day: **${fmt.weekday(s.favoriteWeekday)}**.`)}`,
+        `${habitSentence(fmt, key, s.habit.share)} ${fmt.m('habits.favorite', { day: fmt.weekday(s.favoriteWeekday) })}`,
         M,
         y + hs * 0.95 + 88,
         CW,
@@ -285,7 +274,7 @@ export function shoesCard(env: DeckEnv): Card {
   const { fmt, stats: s } = env;
   const top = s.shoes[0];
   const rest = s.shoes.slice(1, 4);
-  const name = cleanName(top.name).toUpperCase() || fmt.t('TUS ZAPATILLAS', 'YOUR SHOES');
+  const name = fmt.upper(cleanName(top.name) || fmt.m('shoes.fallback'));
   const maxDist = top.distance;
   // Kilómetros de toda su vida (también de años anteriores) frente a la vida útil habitual.
   const life = Math.max(top.lifetime, top.distance);
@@ -298,24 +287,18 @@ export function shoesCard(env: DeckEnv): Card {
     duration: 7000,
     render(f) {
       const { ctx, theme } = f;
-      kicker(f, fmt.t('Tus zapatillas', 'Your shoes'), M, KICK);
+      kicker(f, fmt.m('shoes.kicker'), M, KICK);
       const lines = f.memo('lines', () => (fitSize(ctx, name, 'display', 120, CW) >= 92 ? [name] : splitLines(name, 2, 16)));
       const hs = Math.min(120, ...lines.map((l) => fitSize(ctx, l, 'display', 120, CW)));
       const y = topBaseline(f, hs);
       headline(f, lines, M, y, hs, { start: 120 });
       const size = 230;
       const base = y + hs * 0.98 * (lines.length - 1) + 50 + capRatio(ctx) * size;
-      heroNumber(f, fmt.dist(top.distance, 0), fmt.distUnit.toUpperCase(), M, base, size, { start: 350, unitScale: 0.34 });
+      heroNumber(f, fmt.dist(top.distance, 0), fmt.upper(fmt.distUnit), M, base, size, { start: 350, unitScale: 0.34 });
       const mar = top.distance / MARATHON_M;
-      const nRuns = `**${fmt.num(top.runs)} ${fmt.plural(top.runs, fmt.t('carrera', 'run'), fmt.t('carreras', 'runs'))}**`;
-      const parts = [
-        fmt.t(
-          `${nRuns} ${top.runs === 1 ? 'con ellas' : 'juntas'} en ${s.year}: dan para **${marathonsLabel(fmt, mar)}**.`,
-          `${nRuns} together in ${s.year}: that's **${marathonsLabel(fmt, mar)}**.`,
-        ),
-      ];
-      if (older) parts.push(fmt.t(`En total ya lleváis **${fmt.distWithUnit(life, 0)}** juntos.`, `**${fmt.distWithUnit(life, 0)}** together in total.`));
-      if (retire) parts.push(fmt.t('Quizá va siendo hora de jubilarlas.', 'Maybe it’s time to retire them.'));
+      const parts = [fmt.m('shoes.runs', { runs: top.runs, year: String(s.year), marathons: marathonsLabel(fmt, mar) })];
+      if (older) parts.push(fmt.m('shoes.total', { dist: fmt.distWithUnit(life, 0) }));
+      if (retire) parts.push(fmt.m('shoes.retire'));
       const lay = paragraph(f, parts.join(' '), M, base + 100, CW, 38, { start: 650 });
 
       // Vida útil: barra hasta los ~800 km habituales de unas zapatillas.
@@ -324,8 +307,8 @@ export function shoesCard(env: DeckEnv): Card {
       fadeUp(f, 900, () => {
         setFont(ctx, 'text', 22, 800);
         ctx.fillStyle = theme.sub;
-        drawTracked(ctx, fmt.t('VIDA ÚTIL HABITUAL', 'TYPICAL LIFESPAN'), M, my - 26, 3);
-        drawTracked(ctx, `${fmt.dist(LIFESPAN, 0)} ${fmt.distUnit.toUpperCase()}`, W - M, my - 26, 3, 'right');
+        drawTracked(ctx, fmt.upper(fmt.m('shoes.lifespan')), M, my - 26, fmt.cased ? 3 : 0);
+        drawTracked(ctx, fmt.upper(fmt.distWithUnit(LIFESPAN, 0)), W - M, my - 26, fmt.cased ? 3 : 0, 'right');
       });
       const frac = Math.min(1, life / LIFESPAN);
       ctx.save();
@@ -343,7 +326,7 @@ export function shoesCard(env: DeckEnv): Card {
       fadeUp(f, 2300, () => {
         setFont(ctx, 'display', 44);
         ctx.fillStyle = theme.fg;
-        const label = `${fmt.dist(life, 0)} ${fmt.distUnit.toUpperCase()}`;
+        const label = fmt.upper(fmt.distWithUnit(life, 0));
         const x = M + CW * frac;
         const align = frac > 0.8 ? 'right' : frac < 0.2 ? 'left' : 'center';
         drawTracked(ctx, label, align === 'right' ? Math.min(W - M, x) : align === 'left' ? M : x, my + 80, 0, align);
@@ -363,7 +346,7 @@ export function shoesCard(env: DeckEnv): Card {
         fadeUp(f, 1300, () => {
           setFont(ctx, 'text', 22, 800);
           ctx.fillStyle = theme.sub;
-          drawTracked(ctx, fmt.t(`${fmt.distUnit.toUpperCase()} AL MES CON ELLAS`, `MONTHLY ${fmt.distUnit.toUpperCase()} IN THEM`), M, chartTop + 20, 3);
+          drawTracked(ctx, fmt.upper(fmt.m('shoes.monthly', { unit: fmt.distUnit })), M, chartTop + 20, fmt.cased ? 3 : 0);
         });
         for (let i = 0; i < 12; i++) {
           const x = M + i * (bw + gap);
@@ -376,7 +359,7 @@ export function shoesCard(env: DeckEnv): Card {
           ctx.globalAlpha = prog(f.t, 1400 + i * 60, 400);
           setFont(ctx, 'text', 22, 800);
           ctx.fillStyle = theme.sub;
-          drawTracked(ctx, fmt.monthShort(i).charAt(0).toUpperCase(), x + bw / 2, bottom + 40, 0, 'center');
+          drawTracked(ctx, fmt.monthLetter(i), x + bw / 2, bottom + 40, 0, 'center');
           ctx.restore();
         }
       }
@@ -385,7 +368,7 @@ export function shoesCard(env: DeckEnv): Card {
         fadeUp(f, 1100 + i * 140, () => {
           setFont(ctx, 'display', 44);
           ctx.fillStyle = theme.fg;
-          const tw = drawTracked(ctx, `${fmt.dist(sh.distance, 0)} ${fmt.distUnit.toUpperCase()}`, W - M, yy + 2, 0, 'right');
+          const tw = drawTracked(ctx, fmt.upper(fmt.distWithUnit(sh.distance, 0)), W - M, yy + 2, 0, 'right');
           setFont(ctx, 'text', 30, 700);
           let label = cleanName(sh.name) || '—';
           while (ctx.measureText(label).width > CW - tw - 40 && label.length > 6) label = label.slice(0, -2) + '…';
@@ -411,25 +394,25 @@ export function curiosityTiles(env: DeckEnv): { v: string; u?: string; l: string
   if (s.earliest) {
     // "Madrugón" solo si de verdad lo es; si no, la salida más temprana.
     const when = fmt.dateShort(s.earliest.run.local);
-    tiles.push({ v: fmt.clock(s.earliest.minutes), l: s.earliest.minutes < 7 * 60 ? fmt.t(`Tu madrugón récord (${when})`, `Earliest start (${when})`) : fmt.t(`Tu salida más temprana (${when})`, `Earliest start (${when})`) });
+    tiles.push({ v: fmt.clock(s.earliest.minutes), l: fmt.m(s.earliest.minutes < 7 * 60 ? 'fun.earliestEarly' : 'fun.earliest', { date: when }) });
   }
-  if (s.latest && (s.latest.minutes >= 19 * 60 || s.latest.minutes < 4 * 60)) tiles.push({ v: fmt.clock(s.latest.minutes), l: fmt.t(`Tu salida más tardía (${fmt.dateShort(s.latest.run.local)})`, `Latest start (${fmt.dateShort(s.latest.run.local)})`) });
-  if (s.sun && s.sun.dark >= 3) tiles.push({ v: fmt.num(s.sun.dark), l: fmt.t('Carreras con el sol ya puesto', 'Runs after dark') });
-  if (s.kudos && s.kudos >= 5) tiles.push({ v: fmt.num(s.kudos), l: fmt.t('Kudos que has repartido', 'Kudos you gave out') });
+  if (s.latest && (s.latest.minutes >= 19 * 60 || s.latest.minutes < 4 * 60)) tiles.push({ v: fmt.clock(s.latest.minutes), l: fmt.m('fun.latest', { date: fmt.dateShort(s.latest.run.local) }) });
+  if (s.sun && s.sun.dark >= 3) tiles.push({ v: fmt.num(s.sun.dark), l: fmt.m('fun.dark') });
+  if (s.kudos && s.kudos >= 5) tiles.push({ v: fmt.num(s.kudos), l: fmt.m('fun.kudos') });
   if (s.steps && s.steps > 1000) {
     const b = fmt.big(s.steps);
-    tiles.push({ v: b.value, u: b.unit, l: fmt.t('Pasos, más o menos', 'Steps, give or take') });
+    tiles.push({ v: b.value, u: b.unit, l: fmt.m('fun.steps') });
   }
-  if (s.calories && s.calories > 2000) tiles.push({ v: fmt.num(s.calories / PIZZA_KCAL), l: fmt.t(`Pizzas quemadas (${fmt.num(s.calories)} kcal)`, `Pizzas burned (${fmt.num(s.calories)} kcal)`) });
+  if (s.calories && s.calories > 2000) tiles.push({ v: fmt.num(s.calories / PIZZA_KCAL), l: fmt.m('fun.pizzas', { kcal: fmt.num(s.calories) }) });
   if (s.hottest && s.coldest && s.hottest.temp - s.coldest.temp > 6) {
-    tiles.push({ v: fmt.temp(s.hottest.temp), l: fmt.t(`La más calurosa según tu reloj (${fmt.dateShort(s.hottest.run.local)})`, `Hottest run, per your watch (${fmt.dateShort(s.hottest.run.local)})`) });
-    tiles.push({ v: fmt.temp(s.coldest.temp), l: fmt.t(`Y la más fría (${fmt.dateShort(s.coldest.run.local)})`, `And the coldest (${fmt.dateShort(s.coldest.run.local)})`) });
+    tiles.push({ v: fmt.temp(s.hottest.temp), l: fmt.m('fun.hottest', { date: fmt.dateShort(s.hottest.run.local) }) });
+    tiles.push({ v: fmt.temp(s.coldest.temp), l: fmt.m('fun.coldest', { date: fmt.dateShort(s.coldest.run.local) }) });
   }
-  if (s.challenges) tiles.push({ v: fmt.num(s.challenges), l: fmt.t(s.challenges === 1 ? 'Reto de Strava completado' : 'Retos de Strava completados', s.challenges === 1 ? 'Strava challenge completed' : 'Strava challenges completed') });
-  if (s.races.length) tiles.push({ v: fmt.num(s.races.length), l: fmt.t(s.races.length === 1 ? 'Carrera con dorsal' : 'Carreras con dorsal', s.races.length === 1 ? 'Race with a bib' : 'Races with a bib') });
-  if (s.cities.length >= 3) tiles.push({ v: fmt.num(s.cities.length), l: fmt.t('Ciudades distintas', 'Different cities') });
-  tiles.push({ v: fmt.dist(s.avgDistance, 1), u: fmt.distUnit.toUpperCase(), l: fmt.t('Distancia media por carrera', 'Average distance per run') });
-  tiles.push({ v: fmt.pct(s.weekendShare), l: fmt.t('De tus carreras, en fin de semana', 'Of your runs on weekends') });
+  if (s.challenges) tiles.push({ v: fmt.num(s.challenges), l: fmt.m('fun.challenges', { n: s.challenges }) });
+  if (s.races.length) tiles.push({ v: fmt.num(s.races.length), l: fmt.m('fun.races', { n: s.races.length }) });
+  if (s.cities.length >= 3) tiles.push({ v: fmt.num(s.cities.length), l: fmt.m('fun.cities') });
+  tiles.push({ v: fmt.dist(s.avgDistance, 1), u: fmt.upper(fmt.distUnit), l: fmt.m('fun.avgDist') });
+  tiles.push({ v: fmt.pct(s.weekendShare), l: fmt.m('fun.weekend') });
   return tiles;
 }
 
@@ -442,10 +425,10 @@ export function curiositiesCard(env: DeckEnv): Card {
     duration: 7500,
     render(f) {
       const { ctx } = f;
-      kicker(f, fmt.t('Curiosidades', 'Fun facts'), M, KICK);
+      kicker(f, fmt.m('fun.kicker'), M, KICK);
       const hs = 150;
       const y = topBaseline(f, hs);
-      headline(f, [fmt.t('La letra', 'The fine'), fmt.t('pequeña', 'print')], M, y, hs, { start: 120, colors: [COLORS.ink, COLORS.white], lineHeight: 0.95 });
+      headline(f, fmt.lines('fun.title'), M, y, hs, { start: 120, colors: [COLORS.ink, COLORS.white], lineHeight: 0.95 });
       const top = y + hs * 0.95 + 90;
       const colW = CW / 2;
       const rowH = Math.min(330, (1770 - top) / 3);
@@ -488,16 +471,16 @@ export function othersCard(env: DeckEnv): Card {
     duration: 6500,
     render(f) {
       const { ctx, theme } = f;
-      kicker(f, fmt.t('Además de correr', 'Beyond running'), M, KICK);
+      kicker(f, fmt.m('others.kicker'), M, KICK);
       const hs = 150;
       const y = topBaseline(f, hs);
       const n = s.others.length;
-      headline(f, [fmt.t(`${n} ${n === 1 ? 'deporte' : 'deportes'}`, `${n} more`), fmt.t('más', n === 1 ? 'sport' : 'sports')], M, y, hs, { start: 120, colors: [COLORS.orange, theme.fg], lineHeight: 0.95 });
+      headline(f, fmt.lines('others.title', { n }), M, y, hs, { start: 120, colors: [COLORS.orange, theme.fg], lineHeight: 0.95 });
       paragraph(
         f,
         totalSec >= 3600
-          ? fmt.t(`Otras **${hoursLabel(fmt, totalSec)}** de entreno fuera del asfalto.`, `Another **${hoursLabel(fmt, totalSec)}** of training off the road.`)
-          : fmt.t(`Otros **${Math.max(1, Math.round(totalSec / 60))} minutos** de entreno fuera del asfalto.`, `Another **${Math.max(1, Math.round(totalSec / 60))} minutes** of training off the road.`),
+          ? fmt.m('others.hours', { n: fmt.round(totalSec / 3600, totalSec < 36000 ? 1 : 0) })
+          : fmt.m('others.minutes', { n: Math.max(1, Math.round(totalSec / 60)) }),
         M,
         y + hs * 0.95 + 88,
         CW,
@@ -509,12 +492,12 @@ export function othersCard(env: DeckEnv): Card {
       list.forEach((o, i) => {
         const yy = top + i * rowH;
         fadeUp(f, 800 + i * 130, () => {
-          const time = o.moving < 3600 ? `${Math.max(1, Math.round(o.moving / 60))} MIN` : `${fmt.num(o.moving / 3600, o.moving < 36000 ? 1 : 0)} H`;
+          const time = fmt.upper(o.moving < 3600 ? `${Math.max(1, Math.round(o.moving / 60))}\u00a0${fmt.m('unit.min')}` : `${fmt.num(o.moving / 3600, o.moving < 36000 ? 1 : 0)}\u00a0${fmt.m('unit.h')}`);
           setFont(ctx, 'display', 56);
           ctx.fillStyle = theme.fg;
           const tw = drawTracked(ctx, time, W - M, yy + 4, 0, 'right');
           setFont(ctx, 'text', 32, 700);
-          let label = `${cleanName(sportLabel(fmt, o.category, o.label))} · ${fmt.num(o.count)} ${fmt.t(o.count === 1 ? 'sesión' : 'sesiones', o.count === 1 ? 'session' : 'sessions')}`;
+          let label = `${cleanName(sportLabel(fmt, o.category, o.label))} · ${fmt.m('others.sessions', { n: o.count })}`;
           while (ctx.measureText(label).width > CW - tw - 40 && label.length > 6) label = label.slice(0, -2) + '…';
           ctx.fillText(label, M, yy);
           const p = ease.outCubic(prog(f.t, 900 + i * 130, 800));
@@ -547,10 +530,10 @@ export function photosCard(env: DeckEnv): Card {
     duration: 7000,
     render(f) {
       const { ctx, theme } = f;
-      kicker(f, fmt.t('Tus momentos', 'Your moments'), M, KICK);
+      kicker(f, fmt.m('photos.kicker'), M, KICK);
       const hs = 140;
       const y = topBaseline(f, hs);
-      headline(f, [fmt.t('Lo que', 'What the'), fmt.t('vieron tus ojos', 'road looked like')], M, y, hs, { start: 120, colors: [theme.fg, COLORS.orange], lineHeight: 0.95 });
+      headline(f, fmt.lines('photos.title'), M, y, hs, { start: 120, colors: [theme.fg, COLORS.orange], lineHeight: 0.95 });
       slots.forEach((sl, i) => {
         const img = photos[i];
         const p = ease.outBack(prog(f.t, 700 + i * 260, 700));
@@ -742,29 +725,29 @@ export function archetypeCard(env: DeckEnv): Card {
   const { title, desc } = archetypeText(fmt, key);
   const nightShare = (s.hours.slice(20).reduce((a, b) => a + b, 0) + s.hours.slice(0, 4).reduce((a, b) => a + b, 0)) / Math.max(1, s.runs);
   const facts: [string, string][] = (() => {
-    const km: [string, string] = [fmt.dist(s.distance, 0), fmt.t(`${fmt.distUnit} en total`, `${fmt.distUnit} in total`)];
-    const runs: [string, string] = [fmt.num(s.runs), fmt.t('carreras', 'runs')];
+    const km: [string, string] = [fmt.dist(s.distance, 0), fmt.m('fact.total', { unit: fmt.distUnit })];
+    const runs: [string, string] = [fmt.num(s.runs), fmt.m('fact.runs')];
     switch (key) {
       case 'earlybird':
-        return [[fmt.pct(s.earlyShare), fmt.t('antes de las 9', 'before 9 AM')], [s.earliest ? fmt.clock(s.earliest.minutes) : '–', fmt.t('madrugón récord', 'earliest start')], runs];
+        return [[fmt.pct(s.earlyShare), fmt.m('fact.before9')], [s.earliest ? fmt.clock(s.earliest.minutes) : '–', fmt.m('fact.earliest')], runs];
       case 'nightowl':
-        return [[fmt.pct(nightShare), fmt.t('a partir de las 20 h', 'after 8 PM')], [s.latest ? fmt.clock(s.latest.minutes) : '–', fmt.t('la más tardía', 'latest start')], runs];
+        return [[fmt.pct(nightShare), fmt.m('fact.after8')], [s.latest ? fmt.clock(s.latest.minutes) : '–', fmt.m('fact.latest')], runs];
       case 'globetrotter':
-        return [[fmt.num(s.countries.length), fmt.t('países', 'countries')], [fmt.num(s.cities.length), fmt.t('ciudades', 'cities')], km];
+        return [[fmt.num(s.countries.length), fmt.m('fact.countries')], [fmt.num(s.cities.length), fmt.m('fact.cities')], km];
       case 'goat':
-        return [[fmt.elev(s.elevation), fmt.t(`${fmt.elevUnit} de desnivel`, `${fmt.elevUnit} climbed`)], [fmt.num(fmt.elevValue(s.elevation) / Math.max(1e-6, fmt.distValue(s.distance)), 0), fmt.t(`${fmt.elevUnit}/${fmt.distUnit} de media`, `${fmt.elevUnit}/${fmt.distUnit} average`)], runs];
+        return [[fmt.elev(s.elevation), fmt.m('fact.climbed', { unit: fmt.elevUnit })], [fmt.num(fmt.elevValue(s.elevation) / Math.max(1e-6, fmt.distValue(s.distance)), 0), fmt.m('fact.perDist', { eu: fmt.elevUnit, du: fmt.distUnit })], runs];
       case 'longhauler':
-        return [[fmt.dist(s.avgDistance, 1), fmt.t(`${fmt.distUnit} de media`, `${fmt.distUnit} average`)], [s.longestRun ? fmt.dist(s.longestRun.distance, 1) : '–', fmt.t(`${fmt.distUnit} la más larga`, `${fmt.distUnit} longest`)], km];
+        return [[fmt.dist(s.avgDistance, 1), fmt.m('fact.avg', { unit: fmt.distUnit })], [s.longestRun ? fmt.dist(s.longestRun.distance, 1) : '–', fmt.m('fact.longest', { unit: fmt.distUnit })], km];
       case 'speedster':
-        return [[fmt.pace(s.avgPace), fmt.t(`ritmo medio ${fmt.paceUnit}`, `avg pace ${fmt.paceUnit}`)], [s.fastestRun ? fmt.pace(s.fastestRun.pace) : '–', fmt.t('tu más rápida', 'your fastest')], runs];
+        return [[fmt.pace(s.avgPace), fmt.m('fact.avgPace', { unit: fmt.paceUnit })], [s.fastestRun ? fmt.pace(s.fastestRun.pace) : '–', fmt.m('fact.fastest')], runs];
       case 'metronome':
-        return [[`${s.activeWeeks}/${s.weeksInPeriod}`, fmt.t('semanas activas', 'active weeks')], [fmt.num(s.longestStreak.days), fmt.t('días de racha', 'day streak')], runs];
+        return [[`${s.activeWeeks}/${s.weeksInPeriod}`, fmt.m('fact.activeWeeks')], [fmt.num(s.longestStreak.days), fmt.m('fact.streak')], runs];
       case 'weekender':
-        return [[fmt.pct(s.weekendShare), fmt.t('en fin de semana', 'on weekends')], [fmt.weekday(s.favoriteWeekday).slice(0, 3).toUpperCase(), fmt.t('día favorito', 'favourite day')], runs];
+        return [[fmt.pct(s.weekendShare), fmt.m('fact.weekend')], [fmt.upper(fmt.weekdayShort(s.favoriteWeekday)), fmt.m('fact.favDay')], runs];
       case 'treadmill':
-        return [[fmt.num(s.indoorRuns), fmt.t('en cinta', 'on the treadmill')], [fmt.pct(s.indoorRuns / Math.max(1, s.runs)), fmt.t('de tus carreras', 'of your runs')], km];
+        return [[fmt.num(s.indoorRuns), fmt.m('fact.treadmill')], [fmt.pct(s.indoorRuns / Math.max(1, s.runs)), fmt.m('fact.ofRuns')], km];
       default:
-        return [runs, km, [fmt.num(s.moving / 3600), fmt.t('horas', 'hours')]];
+        return [runs, km, [fmt.num(s.moving / 3600), fmt.m('fact.hours')]];
     }
   })();
   return {
@@ -773,7 +756,7 @@ export function archetypeCard(env: DeckEnv): Card {
     duration: 8000,
     render(f) {
       const { ctx } = f;
-      kicker(f, fmt.t('Tu perfil runner', 'Your runner type'), M, KICK);
+      kicker(f, fmt.m('arch.kicker'), M, KICK);
       const hs = Math.min(190, fitSize(ctx, title[0], 'display', 190, CW), fitSize(ctx, title[1], 'display', 190, CW));
       const y = topBaseline(f, hs);
       headline(f, [title[0], title[1]], M, y, hs, { start: 150, colors: [COLORS.ink, COLORS.white], lineHeight: 0.93, stagger: 160 });
@@ -800,23 +783,23 @@ export function archetypeCard(env: DeckEnv): Card {
 // ------------------------------------------------------------------ RESUMEN
 export function summaryCard(env: DeckEnv): Card {
   const { fmt, stats: s } = env;
-  const { title } = archetypeText(fmt, s.archetype.key);
   const hours = s.moving / 3600;
+  const up = (k: CardKey, v?: Record<string, string | number>) => fmt.upper(fmt.m(k, v));
   const cells: [string, string, string][] = [
-    [fmt.dist(s.distance, s.distance < 100000 ? 1 : 0), fmt.distUnit.toUpperCase(), fmt.t('DISTANCIA', 'DISTANCE')],
-    hours >= 1 ? [fmt.num(hours, hours < 10 ? 1 : 0), 'H', fmt.t('EN MOVIMIENTO', 'MOVING TIME')] : [fmt.num(s.moving / 60), 'MIN', fmt.t('EN MOVIMIENTO', 'MOVING TIME')],
-    [fmt.num(s.runs), '', fmt.t(s.runs === 1 ? 'CARRERA' : 'CARRERAS', s.runs === 1 ? 'RUN' : 'RUNS')],
+    [fmt.dist(s.distance, s.distance < 100000 ? 1 : 0), fmt.upper(fmt.distUnit), up('sum.distance')],
+    hours >= 1 ? [fmt.num(hours, hours < 10 ? 1 : 0), fmt.upper(fmt.m('unit.h')), up('sum.moving')] : [fmt.num(s.moving / 60), fmt.upper(fmt.m('unit.min')), up('sum.moving')],
+    [fmt.num(s.runs), '', up('sum.runs', { n: s.runs })],
   ];
   // Cada dato solo si dice algo (nada de "0 m de desnivel" en la cinta).
   const extra: [string, string, string][] = [];
-  if (s.elevation >= 100) extra.push([fmt.elev(s.elevation), fmt.elevUnit.toUpperCase(), fmt.t('DESNIVEL', 'ELEVATION')]);
-  if (s.countries.length > 1) extra.push([fmt.num(s.countries.length), '', fmt.t('PAÍSES', 'COUNTRIES')]);
+  if (s.elevation >= 100) extra.push([fmt.elev(s.elevation), fmt.upper(fmt.elevUnit), up('sum.elevation')]);
+  if (s.countries.length > 1) extra.push([fmt.num(s.countries.length), '', up('sum.countries')]);
   const best = s.efforts.find((e) => e.target === 10000) ?? s.efforts.find((e) => e.target === 5000);
-  if (best && s.runs >= 3) extra.push([fmt.dur(best.time), '', fmt.t(`MEJOR ${effortLabel(fmt, best.target)}`, `BEST ${effortLabel(fmt, best.target)}`)]);
-  if (s.activeDays >= 2) extra.push([fmt.num(s.activeDays), '', fmt.t('DÍAS CORRIENDO', 'DAYS RUNNING')]);
-  if (Number.isFinite(s.avgPace)) extra.push([fmt.pace(s.avgPace), '', fmt.t(`RITMO MEDIO ${fmt.paceUnit.toUpperCase()}`, `AVG PACE ${fmt.paceUnit.toUpperCase()}`)]);
-  if (s.longestStreak.days >= 3) extra.push([fmt.num(s.longestStreak.days), '', fmt.t('DÍAS DE RACHA', 'DAY STREAK')]);
-  if (s.longestRun && s.runs >= 2) extra.push([fmt.dist(s.longestRun.distance), fmt.distUnit.toUpperCase(), fmt.t('LA MÁS LARGA', 'LONGEST RUN')]);
+  if (best && s.runs >= 3) extra.push([fmt.dur(best.time), '', up('sum.best', { effort: effortLabel(fmt, best.target) })]);
+  if (s.activeDays >= 2) extra.push([fmt.num(s.activeDays), '', up('sum.days')]);
+  if (Number.isFinite(s.avgPace)) extra.push([fmt.pace(s.avgPace), '', up('sum.pace', { unit: fmt.paceUnit })]);
+  if (s.longestStreak.days >= 3) extra.push([fmt.num(s.longestStreak.days), '', up('sum.streak')]);
+  if (s.longestRun && s.runs >= 2) extra.push([fmt.dist(s.longestRun.distance), fmt.upper(fmt.distUnit), up('sum.longest')]);
   cells.push(...extra.slice(0, 3));
   const tracks = s.home?.tracks ?? [];
   return {
@@ -856,14 +839,14 @@ export function summaryCard(env: DeckEnv): Card {
         ctx.drawImage(layer, 0, 0, W, H);
         ctx.restore();
       }
-      const name = (s.name ? `${s.name} ${s.year}` : String(s.year)).toUpperCase();
+      const name = fmt.upper(s.name ? `${s.name} ${s.year}` : String(s.year));
       const ns = fitSize(ctx, name, 'display', 170, CW);
       const ny = 830;
       headline(f, [name], M, ny, ns, { start: 300, color: theme.fg });
       setFont(ctx, 'text', 26, 800);
       fadeUp(f, 500, () => {
         ctx.fillStyle = COLORS.orange;
-        drawTracked(ctx, fmt.t('MI AÑO CORRIENDO', 'MY YEAR IN RUNNING'), M, ny + 60, 6);
+        drawTracked(ctx, fmt.upper(fmt.m('summary.mine')), M, ny + 60, fmt.cased ? 6 : 0);
       });
       const top = ny + 120;
       const colW = CW / 2;
@@ -885,10 +868,16 @@ export function summaryCard(env: DeckEnv): Card {
           }
           setFont(ctx, 'text', 23, 800);
           ctx.fillStyle = theme.sub;
-          drawTracked(ctx, l, x, vb + 46, 3);
+          drawTracked(ctx, l, x, vb + 46, fmt.cased ? 3 : 0);
         });
       });
-      pill(f, `${title[0]} ${title[1]}`.replace('TROTA MUNDOS', 'TROTAMUNDOS').replace('GLOBE TROTTER', 'GLOBETROTTER'), M, 1700, { bg: COLORS.orange, fg: COLORS.ink, size: 30, start: 1500 });
+      pill(f, fmt.upper(fmt.m(`arch.${s.archetype.key}.pill` as CardKey)), M, 1640, { bg: COLORS.orange, fg: COLORS.ink, size: 30, start: 1500 });
+      // Llamada a hacerse el suyo (encima de la marca de agua con el dominio).
+      fadeUp(f, 1900, () => {
+        setFont(ctx, 'text', 24, 800);
+        ctx.fillStyle = theme.fg;
+        drawTracked(ctx, fmt.upper(fmt.m('summary.cta')), W / 2, 1790, fmt.cased ? 4 : 0, 'center');
+      });
     },
   };
 }

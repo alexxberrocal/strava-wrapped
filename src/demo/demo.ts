@@ -1,3 +1,5 @@
+import { cityName } from '../stats/cityNames';
+import type { Lang } from '../i18n/langs';
 import type { CsvActivity } from '../parse/activitiesCsv';
 import { emptyTrack, pushPoint } from '../parse/decoded';
 import { summarizeTrack } from '../parse/track';
@@ -30,7 +32,7 @@ function baseCsv(): Omit<CsvActivity, 'id' | 'startUtc' | 'name' | 'typeRaw' | '
   };
 }
 
-export function demoActivities(lang: 'es' | 'en'): { runs: Activity[]; others: Activity[]; exportDate: number; name: string } {
+export function demoActivities(lang: Lang): { runs: Activity[]; others: Activity[]; exportDate: number; name: string } {
   const a = athlete();
   const runs: Activity[] = a.runs.map((r) => {
     let track = tracks.get(r.id) ?? null;
@@ -42,8 +44,8 @@ export function demoActivities(lang: 'es' | 'en'): { runs: Activity[]; others: A
       ...baseCsv(),
       id: r.id,
       startUtc: r.startUtc,
-      name: r.name[lang],
-      typeRaw: lang === 'es' ? 'Carrera' : 'Run',
+      name: r.name[lang === 'es' ? 'es' : 'en'],
+      typeRaw: lang === 'es' ? 'Carrera' : lang === 'ca' ? 'Cursa' : 'Run',
       category: 'run',
       elapsed: r.elapsed,
       moving: r.moving,
@@ -67,13 +69,13 @@ export function demoActivities(lang: 'es' | 'en'): { runs: Activity[]; others: A
       local: localTimeOf(r.startUtc, r.offsetMin),
       track,
       country: gps ? r.place.cc : null,
-      city: gps ? { name: r.place.name[lang], cc: r.place.cc, lat: r.place.lat, lon: r.place.lon, pop: r.place.pop } : null,
+      city: gps ? { name: cityName(r.place.name.en, r.place.name.es, lang), cc: r.place.cc, lat: r.place.lat, lon: r.place.lon, pop: r.place.pop } : null,
       indoor: !gps,
     };
   });
   const others: Activity[] = a.others.map((o) => ({
     id: o.id,
-    csv: { ...baseCsv(), id: o.id, startUtc: o.startUtc, name: '', typeRaw: o.typeRaw[lang], category: o.category, moving: o.moving, elapsed: o.moving, distance: o.distance },
+    csv: { ...baseCsv(), id: o.id, startUtc: o.startUtc, name: '', typeRaw: o.typeRaw[lang === 'es' ? 'es' : 'en'], category: o.category, moving: o.moving, elapsed: o.moving, distance: o.distance },
     category: o.category,
     startUtc: o.startUtc,
     offsetMin: o.offsetMin,
@@ -87,7 +89,7 @@ export function demoActivities(lang: 'es' | 'en'): { runs: Activity[]; others: A
   return { runs, others, exportDate: a.exportDate, name: a.name };
 }
 
-export function demoStats(lang: 'es' | 'en', trimMeters = 250): WrappedStats {
+export function demoStats(lang: Lang, trimMeters = 250): WrappedStats {
   const d = demoActivities(lang);
   return computeStats({
     year: 2026,
@@ -95,7 +97,7 @@ export function demoStats(lang: 'es' | 'en', trimMeters = 250): WrappedStats {
     lang,
     runs: d.runs,
     others: d.others,
-    prev: { year: 2025, distance: 1_248_000, runs: 137, moving: 421_000, partial: true },
+    prev: { year: 2025, distance: 1_999_000, runs: 176, moving: 640_000, partial: true },
     periodEnd: localTimeOf(d.exportDate, 60),
     trimMeters,
   });

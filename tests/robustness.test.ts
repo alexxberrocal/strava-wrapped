@@ -13,7 +13,7 @@ import type { CsvActivity } from '../src/parse/activitiesCsv';
 import type { Activity, WrappedStats } from '../src/stats/types';
 import type { DeckEnv } from '../src/render/card';
 
-// Idiomas de Strava (support.strava.com: "Supported Languages on Strava").
+// Idiomas de Strava (support.strava.com: "Supported Languages on Strava") y, por si acaso, coreano.
 const STRAVA_LOCALES = ['en-US', 'en-GB', 'fr-FR', 'de-DE', 'it-IT', 'pt-PT', 'pt-BR', 'es-ES', 'es-419', 'zh-CN', 'zh-TW', 'ru-RU', 'nl-NL', 'ja-JP', 'id-ID', 'cs-CZ', 'th-TH', 'fil-PH', 'da-DK', 'ms-MY', 'nb-NO', 'pl-PL', 'sv-SE', 'tr-TR', 'vi-VN', 'ko-KR'];
 
 describe('fechas en todos los idiomas de Strava', () => {
@@ -50,8 +50,13 @@ describe('el sol de verdad', () => {
   });
   it('perfil horario: dorada, sin horario o franja', () => {
     const tod = { dawn: 2, morning: 3, midday: 1, afternoon: 6, evening: 5, night: 3 };
-    expect(pickHabit(tod, 'afternoon', 20, { outdoor: 20, golden: 9, sunrise: 0, dark: 5 }).key).toBe('golden');
+    const sun = { outdoor: 20, golden: 9, sunrise: 0, dark: 5, evening: 0, eveningGolden: 0, eveningDark: 0 };
+    expect(pickHabit(tod, 'afternoon', 20, sun).key).toBe('golden');
     expect(pickHabit(tod, 'afternoon', 20, null).key).toBe('anytime');
+    // Tardes de 19 a 22 h, unas con el sol cayendo y otras ya de noche: "entre dos luces".
+    const eve = { dawn: 1, morning: 2, midday: 1, afternoon: 2, evening: 12, night: 2 };
+    expect(pickHabit(eve, 'evening', 20, { outdoor: 20, golden: 5, sunrise: 0, dark: 8, evening: 12, eveningGolden: 5, eveningDark: 6 }).key).toBe('twilight');
+    expect(pickHabit(eve, 'evening', 20, { outdoor: 20, golden: 1, sunrise: 0, dark: 12, evening: 12, eveningGolden: 1, eveningDark: 11 }).key).toBe('evening');
     expect(pickHabit({ ...tod, dawn: 14 }, 'dawn', 30, null)).toEqual({ key: 'dawn', share: 14 / 30 });
   });
 });
@@ -90,8 +95,8 @@ describe('comparación con el año anterior', () => {
   });
   it('textos: sube, baja, se multiplica o queda igual', () => {
     const es = new Fmt('es', 'metric');
-    expect(yearDelta(es, 1120, { year: 2025, distance: 1000, partial: false })).toMatchObject({ value: '+12%', caption: 'VS 2025', up: true });
-    expect(yearDelta(es, 650, { year: 2025, distance: 1000, partial: true })).toMatchObject({ value: '−35%', caption: 'VS 2025 A ESTAS ALTURAS', up: false });
+    expect(yearDelta(es, 1120, { year: 2025, distance: 1000, partial: false })).toMatchObject({ value: '+12 %', caption: 'VS 2025', up: true });
+    expect(yearDelta(es, 650, { year: 2025, distance: 1000, partial: true })).toMatchObject({ value: '−35 %', caption: 'VS 2025 A ESTAS ALTURAS', up: false });
     expect(yearDelta(es, 2100, { year: 2025, distance: 1000, partial: false })!.value).toBe('×2,1');
     expect(yearDelta(new Fmt('en', 'metric'), 1001, { year: 2025, distance: 1000, partial: false })!.value).toBe('SAME');
   });

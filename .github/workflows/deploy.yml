@@ -28,6 +28,10 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+        env:
+          # URL pública (enlaces al compartir y vista previa en WhatsApp/redes): la variable SITE_URL
+          # del repositorio si hay dominio propio; si no, la de GitHub Pages.
+          VITE_SITE_URL: ${{ vars.SITE_URL || format('https://{0}.github.io/{1}/', github.repository_owner, github.event.repository.name) }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

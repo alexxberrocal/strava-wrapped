@@ -1,6 +1,6 @@
 # RUNRECAP · Tu año corriendo, en una historia
 
-![RUNRECAP](public/og.png)
+![RUNRECAP](public/og-es.jpg)
 
 Web para crear tu **resumen anual de running** (estilo *Wrapped*) a partir del archivo que te
 da Strava. Kilómetros, horas, desnivel, rachas, mejores marcas, pulsaciones, zapatillas, países,
@@ -11,7 +11,11 @@ compartir en Instagram (imagen o vídeo).
 - **Funciona en ordenador y en móvil** (Android e iPhone), en el navegador: sin app que instalar.
 - **Cualquier idioma de Strava**: el export viene traducido (cabeceras y fechas) y se detecta solo.
 - **Exports enormes**: solo se leen las partes necesarias del `.zip`, aunque pese varios GB.
-- Español e inglés, kilómetros o millas.
+- **12 idiomas** (web y tarjetas): español, catalán, inglés, francés, alemán, italiano, portugués,
+  neerlandés, ruso, chino, japonés y coreano. Kilómetros o millas.
+- **Hecha para compartirse**: cada idioma tiene su página (`/es/`, `/en/`, `/ca/`…) con su vista
+  previa traducida para WhatsApp, Instagram o X; las imágenes llevan la marca de agua con la web y
+  la última tarjeta invita a hacerse el suyo; al compartir se añade el enlace.
 
 ## Cómo funciona (para quien la usa)
 
@@ -31,6 +35,8 @@ compartir en Instagram (imagen o vídeo).
 | Tarjetas animadas en canvas a 1080×1920 | `src/render/` |
 | Web: portada, flujo, visor tipo stories, compartir (PNG, MP4, zip) | `src/ui/`, `index.html` |
 | Atleta de demostración (datos inventados) | `src/demo/` |
+| Textos de la web y de las tarjetas en 12 idiomas | `src/i18n/site/`, `src/i18n/cards/` |
+| Páginas de cada idioma, sitemap, robots y 404 (al compilar) | `scripts/site-pages.ts` |
 
 Detalles del export que conviene saber (comprobados con exports reales):
 
@@ -51,11 +57,19 @@ npm run dev          # http://localhost:5173
 ```
 
 - `http://localhost:5173/dev.html` muestra todas las tarjetas con la demo
-  (`?card=distance&t=1200`, `?lang=en&units=imperial`, `?play`, casos extremos con
-  `?case=ultra|tiny|nogps|longname|partial`).
+  (`?card=distance&t=1200`, `?lang=ru&units=imperial`, `?play`, casos extremos con
+  `?case=ultra|tiny|nogps|longname|partial|down`). Con `?og&lang=xx` regenera la imagen de vista
+  previa `public/og-xx.jpg` de ese idioma.
 - `npm run sample` genera `samples/export_12345678.zip` (export de prueba realista) y
   `http://localhost:5173/?sample` lo carga para probar el flujo completo.
 - `npm test` (Vitest) · `npm run typecheck` · `npm run build` (sale en `dist/`).
+- `npm run check:web` compila y revisa la web en los 12 idiomas, en móvil y en ordenador, con el
+  Chrome o Edge del sistema en modo invisible: textos que se salen, botones partidos, scroll
+  lateral, errores de JavaScript… y el recorrido completo con el export de prueba. Capturas en
+  `samples/web-check/`.
+- `npm run sim -- --n=300` (simulador de atletas, ver `CLAUDE.md`); `--langs=all` dibuja cada
+  atleta en los 12 idiomas.
+- `npm run fonts` regenera las tipografías de titulares en cirílico y CJK (`src/styles/fonts/`).
 - `npm run geodata` regenera `public/data` (necesita `scripts/cities15000.zip` de
   [GeoNames](https://download.geonames.org/export/dump/cities15000.zip)).
 - `npx tsx scripts/validate-fit.ts <carpeta>` compara el lector FIT con el SDK oficial de Garmin.
@@ -73,6 +87,10 @@ cualquier hosting. Cada `git push` a `main` pasa los tests y genera el build en 
 3. Haz un push (o lanza el workflow a mano). Quedará en
    `https://alexxberrocal.github.io/strava-wrapped/`.
 
+La URL pública (enlaces al compartir, vista previa y sitemap) se fija al compilar con
+`VITE_SITE_URL`: en GitHub Actions es la variable `SITE_URL` del repositorio o, si no existe, la
+de GitHub Pages.
+
 ### Opción B · Vercel, Netlify o Cloudflare Pages (gratis)
 
 Importa el repositorio desde su web con **Build command** `npm run build` y
@@ -85,13 +103,16 @@ Importa el repositorio desde su web con **Build command** `npm run build` y
 2. Añádelo en el hosting (GitHub Pages: *Settings → Pages → Custom domain*; Vercel/Netlify:
    *Domains*) y crea en tu proveedor el registro DNS que te indiquen (normalmente un `CNAME`).
    El HTTPS es automático.
-3. Cambia `BRAND.domain` en `src/config.ts`: es la marca de agua de las imágenes y vídeos.
+3. Cambia `BRAND.domain` en `src/config.ts` (marca de agua de las imágenes y vídeos) y crea la
+   variable `SITE_URL` del repositorio (por ejemplo `https://runrecap.app/`).
 
 ## Personalizar
 
 - Nombre y dominio: `src/config.ts`.
 - Colores: `src/render/kit.ts` (tarjetas) y `src/styles/main.css` (web).
-- Textos: `src/i18n/site.ts` (web) y cada tarjeta en `src/render/cards/`.
+- Textos: `src/i18n/site/<idioma>.ts` (web) y `src/i18n/cards/<idioma>.ts` (tarjetas). El
+  español define las claves; los tests comprueban que los 12 idiomas las tengan todas, con las
+  mismas variables.
 
 ## Monetizar sin molestar (ideas, de menos a más intrusivo)
 

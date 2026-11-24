@@ -1,3 +1,4 @@
+import type { Lang } from '../i18n/langs';
 import type { CsvActivity } from '../parse/activitiesCsv';
 import type { SportCategory } from '../parse/sports';
 import type { TrackSummary } from '../parse/track';
@@ -57,7 +58,7 @@ export interface Place {
 export type TimeOfDay = 'dawn' | 'morning' | 'midday' | 'afternoon' | 'evening' | 'night';
 
 /** Perfil horario: una franja, la hora dorada / el amanecer (según el sol real) o "sin horario". */
-export type HabitKey = TimeOfDay | 'golden' | 'sunrise' | 'anytime';
+export type HabitKey = TimeOfDay | 'golden' | 'sunrise' | 'twilight' | 'anytime';
 
 export type ArchetypeKey =
   | 'earlybird'
@@ -74,7 +75,7 @@ export type ArchetypeKey =
 export interface WrappedStats {
   year: number;
   name: string;
-  lang: 'es' | 'en';
+  lang: Lang;
   isPartialYear: boolean;
   periodEnd: LocalTime;
   daysInPeriod: number;
@@ -107,7 +108,7 @@ export interface WrappedStats {
   /** Perfil horario que se enseña (con su porcentaje de carreras). */
   habit: { key: HabitKey; share: number };
   /** Fase del sol en las carreras con GPS: hora dorada, amanecer, de noche. */
-  sun: { outdoor: number; golden: number; sunrise: number; dark: number } | null;
+  sun: { outdoor: number; golden: number; sunrise: number; dark: number; evening: number; eveningGolden: number; eveningDark: number } | null;
   earlyShare: number;
   weekendShare: number;
   earliest: { minutes: number; run: RunRef } | null;

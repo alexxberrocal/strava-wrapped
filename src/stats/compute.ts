@@ -1,3 +1,4 @@
+import type { Lang } from '../i18n/langs';
 import { EFFORT_TARGETS, haversine, plausibleEffort } from '../parse/track';
 import type { Goal, PrivacyZone } from '../parse/extras';
 import type { SportCategory } from '../parse/sports';
@@ -8,7 +9,7 @@ import type { Activity, ArchetypeKey, HabitKey, LocalTime, Place, RunRef, TimeOf
 export interface ComputeInput {
   year: number;
   name: string;
-  lang: 'es' | 'en';
+  lang: Lang;
   runs: Activity[];
   others: Activity[];
   prev: WrappedStats['prev'];
@@ -199,7 +200,7 @@ export function computeStats(input: ComputeInput): WrappedStats {
   // ---- El sol: ¿hora dorada de verdad, amanecer o noche cerrada? (solo carreras al aire libre) ----
   let sun: WrappedStats['sun'] = null;
   {
-    let outdoor = 0, golden = 0, sunrise = 0, dark = 0;
+    let outdoor = 0, golden = 0, sunrise = 0, dark = 0, evening = 0, eveningGolden = 0, eveningDark = 0;
     for (const r of runs) {
       const st = r.track?.start;
       if (r.indoor || !st) continue;
@@ -210,8 +211,13 @@ export function computeStats(input: ComputeInput): WrappedStats {
       if (ph === 'golden') golden++;
       else if (ph === 'sunrise') sunrise++;
       else if (ph === 'dark') dark++;
+      if (timeOfDayOf(r.local.h) === 'evening') {
+        evening++;
+        if (ph === 'golden') eveningGolden++;
+        else if (ph === 'dark') eveningDark++;
+      }
     }
-    if (outdoor > 0) sun = { outdoor, golden, sunrise, dark };
+    if (outdoor > 0) sun = { outdoor, golden, sunrise, dark, evening, eveningGolden, eveningDark };
   }
   const habit = pickHabit(tod, todKey, runs.length, sun);
 
@@ -580,12 +586,20 @@ export function pickHabit(
 ): { key: HabitKey; share: number } {
   const n = Math.max(1, runs);
   const topShare = tod[todKey] / n;
-  if (sun && sun.outdoor >= Math.max(4, runs * 0.5)) {
+  const sunOk = !!sun && sun.outdoor >= Math.max(4, runs * 0.5);
+  if (sun && sunOk) {
     const g = sun.golden / n;
     const sr = sun.sunrise / n;
     if (g >= 0.3 && g >= topShare * 0.75 && g >= sr) return { key: 'golden', share: g };
     if (sr >= 0.3 && sr >= topShare * 0.75) return { key: 'sunrise', share: sr };
   }
   if (topShare < 0.34) return { key: 'anytime', share: topShare };
+  // De 19 a 22 h: según el sol de cada carrera, hora dorada, de noche o "entre dos luces".
+  if (todKey === 'evening' && sun && sunOk && sun.evening >= 4) {
+    const g = sun.eveningGolden / sun.evening;
+    const d = sun.eveningDark / sun.evening;
+    if (g >= 0.6) return { key: 'golden', share: sun.golden / n };
+    if (g >= 0.2 && d >= 0.2) return { key: 'twilight', share: topShare };
+  }
   return { key: todKey, share: topShare };
 }

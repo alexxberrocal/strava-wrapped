@@ -3,14 +3,15 @@ import type { ArchiveInput } from '../parse/archive';
 import type { Dataset, Pipeline } from '../app/pipeline';
 import { loadCountries } from '../geo/countries';
 import { Fmt, type Units } from '../i18n/format';
-import { applySiteLang, siteLang, tr } from '../i18n/site';
+import { applySiteLang, pctLabel, siteLang, tr } from '../i18n/site';
 import { CardPainter, type Card, type DeckEnv } from '../render/card';
 import { buildDeck } from '../render/deck';
-import { ensureFonts } from '../render/fonts';
+import { ensureCardAssets, preloadDeckText } from '../render/fonts';
 import type { Activity, WrappedStats } from '../stats/types';
 import { downloadBlob, h, slug, toast } from './dom';
 import { paintThumb, renderZip } from './export';
 import { StoryPlayer } from './player';
+import { inviteFriends } from './invite';
 import { openShareSheet } from './shareSheet';
 
 interface Settings {
@@ -36,7 +37,7 @@ export class Flow {
   private pipeline: Pipeline | null = null;
   private dataset: Dataset | null = null;
   private settings: Settings | null = null;
-  private yearData: { key: string; runs: Activity[]; others: Activity[] } | null = null;
+  private yearData: { key: string; runs: Activity[]; others: Activity[]; excluded: number } | null = null;
   private building: Promise<void> | null = null;
   private buildToken = 0;
   private built: Built | null = null;
@@ -154,9 +155,9 @@ export class Flow {
       .buildYear(s.year, { runTypes: s.runTypes }, (done, total) => {
         if (token === this.buildToken) this.setGo(false, total ? done / total : 0);
       })
-      .then(({ runs, others }) => {
+      .then(({ runs, others, excluded }) => {
         if (token !== this.buildToken) return;
-        this.yearData = { key, runs, others };
+        this.yearData = { key, runs, others, excluded };
         this.renderSummaryLine();
         this.setGo(runs.length > 0, 1);
       })
@@ -172,7 +173,7 @@ export class Flow {
   private setGo(ready: boolean, p: number) {
     if (!this.goBtn) return;
     this.goBtn.disabled = !ready;
-    this.goBtn.innerHTML = ready ? `<span>${tr('setup.go')}</span> <span aria-hidden="true">→</span>` : `<span>${tr('setup.wait', { pct: `${Math.round(p * 100)}%` })}</span>`;
+    this.goBtn.innerHTML = ready ? `<span>${tr('setup.go')}</span> <span aria-hidden="true">→</span>` : `<span>${tr('setup.wait', { pct: pctLabel(p) })}</span>`;
   }
 
   private renderSummaryLine() {
@@ -180,7 +181,8 @@ export class Flow {
     const fmt = new Fmt(siteLang(), this.settings.units);
     const runs = this.yearData.runs;
     const dist = runs.reduce((a, r) => a + r.csv.distance, 0);
-    this.summaryEl.textContent = tr('flow.summary', { runs: fmt.num(runs.length), year: this.settings.year, km: fmt.distWithUnit(dist, 0) });
+    const skipped = this.yearData.excluded ? tr('flow.excluded', { n: fmt.num(this.yearData.excluded) }) : '';
+    this.summaryEl.textContent = tr('flow.summary', { runs: fmt.num(runs.length), year: this.settings.year, km: fmt.distWithUnit(dist, 0) }) + skipped;
     if (this.warnEl) {
       this.warnEl.hidden = runs.length > 0;
       this.warnEl.textContent = tr('err.noRuns', { year: this.settings.year });
@@ -287,13 +289,16 @@ export class Flow {
     const lang = siteLang();
     const stats = p.wrapped(s.year, yd.runs, yd.others, { name: s.name, lang, trimMeters: s.trim ? PRIVACY_TRIM_METERS : 0 }, s.runTypes);
     const [, countries, photos] = await Promise.all([
-      ensureFonts(s.name),
+      ensureCardAssets(lang, s.name),
       loadCountries().catch(() => null),
       stats.photos.length >= 3 ? withTimeout(p.photos(stats.photos, 5), 6000, [] as ImageBitmap[]) : Promise.resolve([] as ImageBitmap[]),
     ]);
     const env: DeckEnv = { fmt: new Fmt(lang, s.units), stats, countries, photos, brand: BRAND.name, domain: BRAND.domain };
     const cards = buildDeck(env, { cityMap: s.cityMap });
-    return { stats, cards, painter: new CardPainter(env), demo: false };
+    const painter = new CardPainter(env);
+    // Ruso, chino, japonés, coreano (o un nombre en otra escritura): letras listas antes de pintar.
+    await preloadDeckText(painter, cards, lang, s.name);
+    return { stats, cards, painter, demo: false };
   }
 
   private async play() {
@@ -332,11 +337,12 @@ export class Flow {
   async playDemo(units: Units) {
     const lang = siteLang();
     const { demoStats } = await import('../demo/demo');
-    const [, countries] = await Promise.all([ensureFonts(), loadCountries().catch(() => null)]);
+    const [, countries] = await Promise.all([ensureCardAssets(lang), loadCountries().catch(() => null)]);
     const stats = demoStats(lang);
     const env: DeckEnv = { fmt: new Fmt(lang, units), stats, countries, photos: [], brand: BRAND.name, domain: BRAND.domain };
     const cards = buildDeck(env);
     const painter = new CardPainter(env);
+    await preloadDeckText(painter, cards, lang);
     const player = new StoryPlayer({
       cards,
       painter,
@@ -370,6 +376,7 @@ export class Flow {
   // ------------------------------------------------------------ Resultados
   private bindResults() {
     this.resultsEl.querySelector('#results-play')?.addEventListener('click', () => this.openStory(0));
+    this.resultsEl.querySelector('#results-invite')?.addEventListener('click', () => void inviteFriends());
     this.resultsEl.querySelector('#results-settings')?.addEventListener('click', () => {
       document.getElementById('crear')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
@@ -381,7 +388,7 @@ export class Flow {
       const label = zipBtn.innerHTML;
       try {
         const blob = await renderZip(b.painter, b.cards, this.filePrefix(), (p) => {
-          zipBtn.textContent = tr('share.zipMaking', { pct: `${Math.round(p * 100)}%` });
+          zipBtn.textContent = tr('share.zipMaking', { pct: pctLabel(p) });
         });
         downloadBlob(blob, `${this.filePrefix()}.zip`);
       } catch (err) {

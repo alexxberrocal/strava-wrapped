@@ -6,6 +6,8 @@ RUNRECAP usa estos componentes, cada uno con su licencia:
 | --- | --- | --- |
 | [Anton](https://fonts.google.com/specimen/Anton) (Vernon Adams) vía Fontsource | Tipografía de titulares | SIL Open Font License 1.1 |
 | [Archivo](https://fonts.google.com/specimen/Archivo) (Omnibus-Type) vía Fontsource | Tipografía de texto | SIL Open Font License 1.1 |
+| [Oswald](https://fonts.google.com/specimen/Oswald) (Vernon Adams y otros) vía Fontsource | Titulares en ruso (cirílico) | SIL Open Font License 1.1 |
+| [Noto Sans SC, JP y KR](https://fonts.google.com/noto) (Google) vía Fontsource | Titulares en chino, japonés y coreano | SIL Open Font License 1.1 |
 | [Natural Earth](https://www.naturalearthdata.com/) vía [world-atlas](https://github.com/topojson/world-atlas) | Fronteras de países (`public/data/countries.json`) | Dominio público / ISC |
 | [GeoNames](https://www.geonames.org/) `cities15000` | Ciudades (`public/data/cities.tsv`) | CC BY 4.0 (se cita en el pie de la web) |
 | [@zip.js/zip.js](https://github.com/gildas-lormeau/zip.js) | Leer y crear archivos .zip | BSD-3-Clause |

@@ -1,5 +1,6 @@
 import type { Card, CardPainter } from '../render/card';
-import { tr } from '../i18n/site';
+import { shareUrl } from '../config';
+import { pctLabel, siteLang, tr } from '../i18n/site';
 import { canShareFiles, downloadBlob, h, iconButton, toast } from './dom';
 import { paintThumb, renderPng, renderVideo, videoCodec } from './export';
 
@@ -32,7 +33,7 @@ export function openShareSheet(o: ShareOptions) {
   const shareFile = async (file: File) => {
     if (canShareFiles([file])) {
       try {
-        await navigator.share({ files: [file], title: o.brand, text: tr('share.text', { brand: o.brand }) });
+        await navigator.share({ files: [file], title: o.brand, text: tr('share.textFull', { url: shareUrl(siteLang()) }) });
         return;
       } catch (err) {
         if ((err as DOMException)?.name === 'AbortError') return;
@@ -52,7 +53,7 @@ export function openShareSheet(o: ShareOptions) {
       // Si no hay hoja nativa, "compartir" = descargar: evitamos dos botones iguales.
       if (!canShareFiles([png])) shareImg.hidden = true;
     })
-    .catch(() => toast('No se pudo generar la imagen'));
+    .catch(() => toast(tr('share.imageErr')));
 
   videoCodec().then((codec) => {
     if (!codec) {
@@ -71,7 +72,7 @@ export function openShareSheet(o: ShareOptions) {
         o.painter,
         o.card,
         (p) => {
-          makeVideo.textContent = tr('share.videoMaking', { pct: `${Math.round(p * 100)}%` });
+          makeVideo.textContent = tr('share.videoMaking', { pct: pctLabel(p) });
         },
         abort.signal,
       );

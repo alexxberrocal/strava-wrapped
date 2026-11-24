@@ -29,7 +29,7 @@ function csvCell(v: string | number): string {
 
 const mesg = (o: Record<string, unknown>) => o as never;
 
-function fitFile(r: SynthRun): Uint8Array {
+export function fitFile(r: SynthRun): Uint8Array {
   const pts = r.points!;
   const enc = new Encoder();
   const start = new Date(pts[0].t * 1000);
@@ -63,7 +63,7 @@ function fitFile(r: SynthRun): Uint8Array {
   return enc.close();
 }
 
-function gpxFile(r: SynthRun): string {
+export function gpxFile(r: SynthRun): string {
   const pts = r.points!;
   const body = pts
     .map((p: SynthPoint) => `   <trkpt lat="${p.lat.toFixed(7)}" lon="${p.lon.toFixed(7)}">\n    <ele>${p.alt.toFixed(1)}</ele>\n    <time>${new Date(p.t * 1000).toISOString().replace('.000', '')}</time>\n    <extensions>\n     <gpxtpx:TrackPointExtension>\n      <gpxtpx:hr>${p.hr}</gpxtpx:hr>\n      <gpxtpx:cad>${Math.round(p.cad)}</gpxtpx:cad>\n     </gpxtpx:TrackPointExtension>\n    </extensions>\n   </trkpt>`)
@@ -84,7 +84,7 @@ ${body}
 `;
 }
 
-function tcxFile(r: SynthRun): string {
+export function tcxFile(r: SynthRun): string {
   const pts = r.points!;
   let dist = 0;
   const tps = pts
@@ -216,4 +216,5 @@ function main() {
   console.log(`${out}: ${rows.length - 1} actividades, ${Object.keys(files).length} ficheros, ${(zip.length / 1e6).toFixed(1)} MB`);
 }
 
-main();
+// Solo al ejecutarlo directamente (el simulador importa los generadores de FIT/GPX/TCX).
+if (process.argv[1] && /make-sample-export\.ts$/.test(process.argv[1].split('\\').join('/'))) main();

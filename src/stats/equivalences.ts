@@ -1,3 +1,5 @@
+import type { Lang } from '../i18n/langs';
+import { cityName } from './cityNames';
 /** Comparaciones divertidas: destinos, montañas, comida… */
 
 // [nombre es, nombre en, lat, lon, país]
@@ -126,7 +128,7 @@ export interface Destination {
  * Ciudad conocida a la que habrías llegado corriendo en línea recta desde casa con `totalKm`:
  * la más lejana que no se pase del total (y que esté a más de 40 km).
  */
-export function pickDestination(home: { lat: number; lon: number }, totalKm: number, lang: 'es' | 'en'): Destination | null {
+export function pickDestination(home: { lat: number; lon: number }, totalKm: number, lang: Lang): Destination | null {
   if (!(totalKm > 45)) return null;
   let best: Destination | null = null;
   let bestScore = -Infinity;
@@ -137,7 +139,7 @@ export function pickDestination(home: { lat: number; lon: number }, totalKm: num
     // Las ciudades icónicas ganan por poco a las que quedan algo más cerca del total.
     const score = km / totalKm + (ICONIC.has(en) ? 0.06 : 0);
     if (!best || score > bestScore) {
-      best = { name: lang === 'es' ? es : en, km, cc, lat, lon };
+      best = { name: cityName(en, es, lang), km, cc, lat, lon };
       bestScore = score;
     }
   }

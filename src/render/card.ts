@@ -1,7 +1,8 @@
 import type { Countries } from '../geo/countries';
 import type { Fmt } from '../i18n/format';
 import type { WrappedStats } from '../stats/types';
-import { COLORS, FONT_TEXT, H, M, THEMES, W, drawTracked, grainPattern, setFont, type Ctx, type Theme, type ThemeName } from './kit';
+import { SCRIPT } from '../i18n/langs';
+import { COLORS, FONT_TEXT, H, M, THEMES, W, drawTracked, grainPattern, setFont, useScript, type Ctx, type Theme, type ThemeName } from './kit';
 
 export interface DeckEnv {
   fmt: Fmt;
@@ -75,6 +76,7 @@ export class CardPainter {
   }
 
   paint(ctx: Ctx, card: Card, t: number, scale: number, opts: { still?: boolean; chrome?: boolean | 'left'; offsetX?: number; offsetY?: number } = {}) {
+    useScript(SCRIPT[this.env.fmt.lang]);
     const st = this.state(card, scale);
     const theme = THEMES[card.theme];
     ctx.save();

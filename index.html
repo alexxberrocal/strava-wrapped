@@ -3,24 +3,52 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!--lang-redirect-->
     <title>RUNRECAP · Tu año corriendo, en una historia</title>
-    <meta name="description" content="Crea tu resumen anual de running a partir del archivo de Strava: kilómetros, países, mapa de calor, marcas y más. Listo para Instagram. Gratis y 100 % en tu navegador." />
+    <meta name="description" content="Crea tu resumen anual de running con el archivo de datos de Strava: kilómetros, países, mapa de calor, marcas y más. Listo para Instagram. Gratis y 100 % en tu navegador." />
     <meta name="theme-color" content="#FC4C02" />
+    <meta name="color-scheme" content="light" />
+    <meta name="apple-mobile-web-app-title" content="RUNRECAP" />
+    <link rel="canonical" href="%SITE_URL%" />
+    <link rel="alternate" hreflang="es" href="%SITE_URL%es/" />
+    <link rel="alternate" hreflang="ca" href="%SITE_URL%ca/" />
+    <link rel="alternate" hreflang="en" href="%SITE_URL%en/" />
+    <link rel="alternate" hreflang="fr" href="%SITE_URL%fr/" />
+    <link rel="alternate" hreflang="de" href="%SITE_URL%de/" />
+    <link rel="alternate" hreflang="it" href="%SITE_URL%it/" />
+    <link rel="alternate" hreflang="pt" href="%SITE_URL%pt/" />
+    <link rel="alternate" hreflang="nl" href="%SITE_URL%nl/" />
+    <link rel="alternate" hreflang="ru" href="%SITE_URL%ru/" />
+    <link rel="alternate" hreflang="zh-Hans" href="%SITE_URL%zh/" />
+    <link rel="alternate" hreflang="ja" href="%SITE_URL%ja/" />
+    <link rel="alternate" hreflang="ko" href="%SITE_URL%ko/" />
+    <link rel="alternate" hreflang="x-default" href="%SITE_URL%" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
+    <meta property="og:site_name" content="RUNRECAP" />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="%SITE_URL%" />
     <meta property="og:title" content="RUNRECAP · Tu año corriendo, en una historia" />
-    <meta property="og:description" content="Tu resumen runner del año a partir de tu archivo de Strava. Listo para compartir en Instagram." />
-    <meta property="og:image" content="./og.png" />
+    <meta property="og:description" content="Crea tu resumen anual de running con el archivo de datos de Strava: kilómetros, países, mapa de calor, marcas y más. Listo para Instagram. Gratis y 100 % en tu navegador." />
+    <meta property="og:image" content="%SITE_URL%og-es.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="RUNRECAP · Tu año corriendo, en una historia" />
+    <meta property="og:locale" content="es_ES" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="RUNRECAP · Tu año corriendo, en una historia" />
+    <meta name="twitter:description" content="Crea tu resumen anual de running con el archivo de datos de Strava: kilómetros, países, mapa de calor, marcas y más. Listo para Instagram. Gratis y 100 % en tu navegador." />
+    <meta name="twitter:image" content="%SITE_URL%og-es.jpg" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"RUNRECAP","url":"%SITE_URL%","applicationCategory":"SportsApplication","operatingSystem":"Web","browserRequirements":"Requires JavaScript","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"description":"Crea tu resumen anual de running con el archivo de datos de Strava.","inLanguage":"es-ES"}</script>
   </head>
   <body>
     <a class="skip" href="#crear" data-i18n="hero.cta">Crear mi resumen</a>
 
     <header class="topbar">
       <div class="wrap topbar__inner">
-        <a class="logo" href="./" aria-label="RUNRECAP">
+        <a class="logo" href="#" aria-label="RUNRECAP">
           <svg class="logo__mark" viewBox="0 0 32 32" aria-hidden="true">
             <path d="M6 24c4-1 5-7 9-8s6 4 10-1" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" />
             <circle cx="6" cy="24" r="3.2" fill="currentColor" />
@@ -31,10 +59,28 @@
         <nav class="topbar__nav">
           <a href="#como" data-i18n="nav.how">Cómo funciona</a>
           <a href="#faq" data-i18n="nav.faq">Preguntas</a>
-          <div class="lang" role="group" aria-label="Idioma / Language">
-            <button type="button" data-lang="es" aria-pressed="true">ES</button>
-            <button type="button" data-lang="en" aria-pressed="false">EN</button>
-          </div>
+          <label class="lang">
+            <svg class="lang__icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+              <path d="M3.5 12h17M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z" fill="none" stroke="currentColor" stroke-width="2" />
+            </svg>
+            <span class="lang__code" id="lang-code">ES</span>
+            <svg class="lang__chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <select id="lang-select" aria-label="Idioma" data-i18n-aria="lang.label">
+              <option value="es" selected>Español</option>
+              <option value="ca">Català</option>
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="de">Deutsch</option>
+              <option value="it">Italiano</option>
+              <option value="pt">Português</option>
+              <option value="nl">Nederlands</option>
+              <option value="ru">Русский</option>
+              <option value="zh">中文</option>
+              <option value="ja">日本語</option>
+              <option value="ko">한국어</option>
+            </select>
+          </label>
         </nav>
       </div>
     </header>
@@ -43,6 +89,10 @@
       <section class="hero">
         <div class="wrap hero__inner">
           <div class="hero__copy">
+            <p class="compat">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.2 4.2L19 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+              <span data-i18n="hero.compat">Compatible con Strava · Proyecto independiente</span>
+            </p>
             <p class="kicker" data-i18n="hero.kicker">Tu resumen runner del año</p>
             <h1 class="hero__title" data-i18n-html="hero.title">Tu año<br />corriendo,<br /><em>contado</em><br />como merece.</h1>
             <p class="hero__lead" data-i18n="hero.lead">Sube el archivo que te da Strava y en un minuto tendrás tu resumen del año: kilómetros, países, tu mapa de calor, tus marcas… listo para compartir en Instagram.</p>
@@ -72,7 +122,7 @@
               <span class="step__num">01</span>
               <h3 data-i18n="step1.title">Pide tu archivo a Strava</h3>
               <p data-i18n-html="step1.text"></p>
-              <a class="btn btn--light btn--small" id="strava-link" target="_blank" rel="noopener noreferrer"><span data-i18n="step1.cta">Abrir Strava</span> <span aria-hidden="true">↗</span></a>
+              <a class="btn btn--light btn--small" id="strava-link" href="https://www.strava.com/athlete/download_my_account" target="_blank" rel="noopener noreferrer"><span data-i18n="step1.cta">Abrir Strava</span> <span aria-hidden="true">↗</span></a>
               <p class="step__note" data-i18n="step1.note"></p>
             </article>
             <article class="step">
@@ -111,6 +161,7 @@
           <div class="results__actions">
             <button type="button" class="btn btn--primary" id="results-play"><span data-i18n="results.replay">Ver la historia</span></button>
             <button type="button" class="btn btn--ghost" id="results-zip"><span data-i18n="results.zip">Descargar todas (.zip)</span></button>
+            <button type="button" class="btn btn--ghost" id="results-invite"><span data-i18n="results.invite">Compártelo con tus amigos</span></button>
             <button type="button" class="btn btn--ghost" id="results-settings"><span data-i18n="results.settings">Cambiar ajustes</span></button>
           </div>
           <p class="results__hint" data-i18n="results.hint"></p>
@@ -130,12 +181,14 @@
           <h2 class="section-title" data-i18n-html="faq.title">Preguntas<br />frecuentes</h2>
           <div class="faq__list">
             <details><summary data-i18n="faq.q1"></summary><p data-i18n="faq.a1"></p></details>
+            <details><summary data-i18n="faq.q8"></summary><p data-i18n="faq.a8"></p></details>
             <details><summary data-i18n="faq.q2"></summary><p data-i18n="faq.a2"></p></details>
             <details><summary data-i18n="faq.q3"></summary><p data-i18n="faq.a3"></p></details>
             <details><summary data-i18n="faq.q4"></summary><p data-i18n="faq.a4"></p></details>
             <details><summary data-i18n="faq.q5"></summary><p data-i18n="faq.a5"></p></details>
             <details><summary data-i18n="faq.q6"></summary><p data-i18n="faq.a6"></p></details>
             <details><summary data-i18n="faq.q7"></summary><p data-i18n="faq.a7"></p></details>
+            <details><summary data-i18n="faq.q9"></summary><p data-i18n="faq.a9"></p></details>
           </div>
         </div>
       </section>

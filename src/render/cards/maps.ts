@@ -24,17 +24,14 @@ export function heatmapCard(env: DeckEnv): Card {
     duration: 8500,
     render(f) {
       const { ctx, theme } = f;
-      kicker(f, fmt.t('Tu territorio', 'Your turf'), M, KICK);
-      const name = (home.name ?? fmt.t('Tu ciudad', 'Your city')).toUpperCase();
+      kicker(f, fmt.m('heatmap.kicker'), M, KICK);
+      const name = fmt.upper(home.name ?? fmt.m('heatmap.city'));
       const hs = fitSize(ctx, name, 'display', 170, CW);
       const y = KICK + 64 + capRatio(ctx) * hs;
       headline(f, [name], M, y, hs, { start: 120, color: COLORS.orange });
       paragraph(
         f,
-        fmt.t(
-          `**${fmt.num(home.runs)} carreras** y **${fmt.distWithUnit(home.distance, 0)}** por sus calles.`,
-          `**${fmt.num(home.runs)} runs** and **${fmt.distWithUnit(home.distance, 0)}** through its streets.`,
-        ),
+        fmt.m('heatmap.text', { runs: home.runs, dist: fmt.distWithUnit(home.distance, 0) }),
         M,
         y + 82,
         CW,
@@ -106,7 +103,7 @@ export function heatmapCard(env: DeckEnv): Card {
           ctx.fillRect(M, 1752, 4, 24);
           ctx.fillRect(M + px - 4, 1752, 4, 24);
           setFont(ctx, 'text', 22, 800);
-          drawTracked(ctx, fmt.imperial ? '1 MI' : '1 KM', M + px + 18, 1772, 3);
+          drawTracked(ctx, fmt.upper(`1 ${fmt.distUnit}`), M + px + 18, 1772, fmt.cased ? 3 : 0);
         }
       });
     },
@@ -132,10 +129,10 @@ export function allRunsCard(env: DeckEnv): Card {
     duration: 7500,
     render(f) {
       const { ctx } = f;
-      kicker(f, fmt.t(`${fmt.num(s.runs)} carreras`, `${fmt.num(s.runs)} runs`), M, KICK);
+      kicker(f, fmt.m('unit.runs', { n: s.runs }), M, KICK);
       const hs = 128;
       const y = KICK + 64 + capRatio(ctx) * hs;
-      headline(f, [fmt.t('Cada carrera,', 'Every run,'), fmt.t('una forma', 'a shape')], M, y, hs, { start: 120, colors: [COLORS.ink, COLORS.white] });
+      headline(f, fmt.lines('allruns.title'), M, y, hs, { start: 120, colors: [COLORS.ink, COLORS.white] });
       const shapes = f.memo('shapes', () =>
         routes.map((r, i) => {
           const c = i % cols, rr = Math.floor(i / cols);
@@ -167,27 +164,27 @@ export function allRunsCard(env: DeckEnv): Card {
 export function longestCard(env: DeckEnv): Card {
   const { fmt, stats: s } = env;
   const r = s.longestRun!;
-  const title = cleanName(r.name) || fmt.t('Tu tirada más larga', 'Your longest run');
+  const title = cleanName(r.name) || fmt.m('longest.fallback');
   return {
     id: 'longest',
     theme: 'light',
     duration: 7500,
     render(f) {
       const { ctx, theme } = f;
-      kicker(f, fmt.t('Tu carrera más larga', 'Your longest run'), M, KICK);
+      kicker(f, fmt.m('longest.kicker'), M, KICK);
       const size = 300;
       const base = KICK + 64 + capRatio(ctx) * size;
-      heroNumber(f, fmt.dist(r.distance), fmt.distUnit.toUpperCase(), M, base, size, { start: 100, unitScale: 0.32 });
-      const lines = splitLines(title.toUpperCase(), 2, 18);
+      heroNumber(f, fmt.dist(r.distance), fmt.upper(fmt.distUnit), M, base, size, { start: 100, unitScale: 0.32 });
+      const lines = splitLines(fmt.upper(title), 2, 18);
       const hs = Math.min(96, ...lines.map((l) => fitSize(ctx, l, 'display', 96, CW)));
       let y = base + 130;
       headline(f, lines, M, y, hs, { start: 400 });
       y += hs * 0.98 * (lines.length - 1) + 74;
       // Fila de datos
       const items: [string, string][] = [
-        [fmt.dur(r.moving), fmt.t('TIEMPO', 'TIME')],
-        [`${fmt.pace(r.pace)}${fmt.paceUnit}`, fmt.t('RITMO', 'PACE')],
-        [fmt.dateShort(r.local).toUpperCase(), fmt.t('FECHA', 'DATE')],
+        [fmt.dur(r.moving), fmt.upper(fmt.m('longest.time'))],
+        [`${fmt.pace(r.pace)}${fmt.paceUnit}`, fmt.upper(fmt.m('longest.pace'))],
+        [fmt.upper(fmt.dateShort(r.local)), fmt.upper(fmt.m('longest.date'))],
       ];
       items.forEach(([v, l], i) => {
         fadeUp(f, 700 + i * 120, () => {
@@ -269,8 +266,8 @@ export function longestCard(env: DeckEnv): Card {
         fadeUp(f, 1100, () => {
           setFont(ctx, 'text', 24, 800);
           ctx.fillStyle = theme.sub;
-          drawTracked(ctx, `0 ${fmt.distUnit.toUpperCase()}`, x0, lineY + 62, 3, 'left');
-          drawTracked(ctx, `${fmt.dist(r.distance)} ${fmt.distUnit.toUpperCase()}`, x1, lineY + 62, 3, 'right');
+          drawTracked(ctx, fmt.upper(`0 ${fmt.distUnit}`), x0, lineY + 62, fmt.cased ? 3 : 0, 'left');
+          drawTracked(ctx, fmt.upper(fmt.distWithUnit(r.distance)), x1, lineY + 62, fmt.cased ? 3 : 0, 'right');
         });
         const pEnd = ease.outBack(prog(f.t, 3900, 500));
         if (pEnd > 0) {
@@ -388,14 +385,14 @@ export function countriesCard(env: DeckEnv): Card {
     duration: 8000,
     render(f) {
       const { ctx, theme } = f;
-      kicker(f, fmt.t('Dónde corriste', 'Where you ran'), M, KICK);
+      kicker(f, fmt.m('countries.kicker'), M, KICK);
       const size = 220;
       const base = KICK + 64 + capRatio(ctx) * size;
       if (oneCountry) {
         const nCities = s.cities.length;
-        heroNumber(f, fmt.num(nCities), fmt.t(nCities === 1 ? 'CIUDAD' : 'CIUDADES', nCities === 1 ? 'CITY' : 'CITIES'), M, base, size, { start: 100, unitScale: 0.42 });
+        heroNumber(f, fmt.num(nCities), fmt.upper(fmt.m('countries.cities', { n: nCities })), M, base, size, { start: 100, unitScale: 0.42 });
       } else {
-        heroNumber(f, fmt.num(nC), fmt.t('PAÍSES', 'COUNTRIES'), M, base, size, { start: 100, unitScale: 0.42 });
+        heroNumber(f, fmt.num(nC), fmt.upper(fmt.m('countries.countries', { n: nC })), M, base, size, { start: 100, unitScale: 0.42 });
       }
       const geo = f.memo('geo', () =>
         panels.map((pn) => {
@@ -538,10 +535,7 @@ export function countriesCard(env: DeckEnv): Card {
         fadeUp(f, 2300, () => {
           setFont(ctx, 'text', 28, 600);
           ctx.fillStyle = theme.sub;
-          const t = fmt.t(
-            `Y ${fmt.num(s.indoorRuns)} ${fmt.plural(s.indoorRuns, 'carrera', 'carreras')} sin GPS (cinta o interior).`,
-            `Plus ${fmt.num(s.indoorRuns)} ${fmt.plural(s.indoorRuns, 'run', 'runs')} without GPS (treadmill or indoors).`,
-          );
+          const t = fmt.m('countries.indoor', { n: s.indoorRuns });
           const noteY = listY + Math.ceil(rows.length / 2) * 78 + 20;
           if (noteY < 1790) ctx.fillText(t, M, noteY);
         });
