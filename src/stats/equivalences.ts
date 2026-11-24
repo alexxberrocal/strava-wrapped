@@ -1,5 +1,5 @@
 import type { Lang } from '../i18n/langs';
-import { cityName } from './cityNames';
+import { cityName, englishCityName, localCityName } from './cityNames';
 /** Comparaciones divertidas: destinos, montañas, comida… */
 
 // [nombre es, nombre en, lat, lon, país]
@@ -173,3 +173,19 @@ export function pickLandmark(meters: number): { landmark: Landmark; times: numbe
 export const MARATHON_M = 42195;
 export const EARTH_KM = 40075;
 export const PIZZA_KCAL = 1000;
+
+// Nombres en español de las ciudades de la tabla de destinos (por su nombre en inglés o español).
+const ES_NAMES = new Map<string, string>();
+for (const [es, en] of DESTINATIONS) {
+  ES_NAMES.set(en.toLowerCase(), es);
+  ES_NAMES.set(es.toLowerCase(), es);
+}
+
+/**
+ * Nombre de una ciudad (tal como llega de GeoNames: "Tokyo", "Sevilla", "München") en el idioma de
+ * las tarjetas si lo tenemos: Tokio, Севилья, Múnich… Si no, se deja como viene.
+ */
+export function placeName(name: string, lang: Lang): string {
+  if (lang !== 'es') return localCityName(name, lang);
+  return ES_NAMES.get(name.toLowerCase()) ?? ES_NAMES.get(englishCityName(name)?.toLowerCase() ?? '') ?? name;
+}

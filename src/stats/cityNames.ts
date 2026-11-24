@@ -234,6 +234,11 @@ export function localCityName(name: string, lang: Lang): string {
   return m[lang] ?? (lang === 'ca' ? name : (m.en ?? name));
 }
 
+/** Nombre en inglés de una ciudad de la tabla, a partir de cualquiera de sus nombres. */
+export function englishCityName(name: string): string | null {
+  return BY_VARIANT.get(name.toLowerCase())?.en ?? null;
+}
+
 /** Nombre de una ciudad de destino en el idioma pedido (inglés si no hay traducción). */
 export function cityName(en: string, es: string, lang: Lang): string {
   if (lang === 'es') return es;

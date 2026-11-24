@@ -4,7 +4,7 @@ import type { Goal, PrivacyZone } from '../parse/extras';
 import type { SportCategory } from '../parse/sports';
 import { daysInYear, jan1Dow, localTimeOf, weekIndex } from './time';
 import { sunPhase } from './sun';
-import { localCityName } from './cityNames';
+import { placeName } from './equivalences';
 import type { Activity, ArchetypeKey, HabitKey, LocalTime, Place, RunRef, TimeOfDay, WrappedStats } from './types';
 
 export interface ComputeInput {
@@ -347,7 +347,7 @@ export function computeStats(input: ComputeInput): WrappedStats {
     }
     if (r.city) {
       const k = `${r.city.name}|${r.city.cc}`;
-      const c = cityMap.get(k) ?? { name: localCityName(r.city.name, input.lang), cc: r.city.cc, runs: 0, distance: 0 };
+      const c = cityMap.get(k) ?? { name: placeName(r.city.name, input.lang), cc: r.city.cc, runs: 0, distance: 0 };
       c.runs++;
       c.distance += r.csv.distance;
       cityMap.set(k, c);
@@ -394,7 +394,7 @@ export function computeStats(input: ComputeInput): WrappedStats {
       cityVotes.set(k, v);
     }
     const top = [...cityVotes.values()].sort((a, b) => b.n - a.n)[0];
-    home = { lat: cLat, lon: cLon, name: top ? localCityName(top.name, input.lang) : null, cc: top?.cc ?? members[0]?.country ?? null, runs: members.length, distance: dist, tracks };
+    home = { lat: cLat, lon: cLon, name: top ? placeName(top.name, input.lang) : null, cc: top?.cc ?? members[0]?.country ?? null, runs: members.length, distance: dist, tracks };
   }
   const routes: WrappedStats['routes'] = [];
   for (const r of gpsActs) {

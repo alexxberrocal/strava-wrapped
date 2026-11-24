@@ -465,6 +465,10 @@ export function othersCard(env: DeckEnv): Card {
   const list = s.others.slice(0, 6);
   const max = Math.max(1, ...list.map((o) => o.moving));
   const totalSec = s.others.reduce((a, o) => a + o.moving, 0);
+  // "80 h"; en chino, japonés y coreano sin espacio: "80時間".
+  const sep = fmt.cased ? '\u00a0' : '';
+  const dur = (sec: number) =>
+    fmt.upper(sec < 3600 ? `${Math.max(1, Math.round(sec / 60))}${sep}${fmt.m('unit.min')}` : `${fmt.num(sec / 3600, sec < 36000 ? 1 : 0)}${sep}${fmt.m('unit.h')}`);
   return {
     id: 'others',
     theme: 'light',
@@ -492,7 +496,7 @@ export function othersCard(env: DeckEnv): Card {
       list.forEach((o, i) => {
         const yy = top + i * rowH;
         fadeUp(f, 800 + i * 130, () => {
-          const time = fmt.upper(o.moving < 3600 ? `${Math.max(1, Math.round(o.moving / 60))}\u00a0${fmt.m('unit.min')}` : `${fmt.num(o.moving / 3600, o.moving < 36000 ? 1 : 0)}\u00a0${fmt.m('unit.h')}`);
+          const time = dur(o.moving);
           setFont(ctx, 'display', 56);
           ctx.fillStyle = theme.fg;
           const tw = drawTracked(ctx, time, W - M, yy + 4, 0, 'right');
@@ -509,6 +513,35 @@ export function othersCard(env: DeckEnv): Card {
           ctx.fill();
         });
       });
+      // Con pocos deportes queda sitio: reparto del tiempo de entreno entre correr y lo demás.
+      if (list.length <= 3 && s.moving > 0 && totalSec > 0) {
+        const by = Math.max(top + list.length * rowH + 150, 1330);
+        fadeUp(f, 1300, () => {
+          const share = s.moving / (s.moving + totalSec);
+          setFont(ctx, 'text', 24, 800);
+          ctx.fillStyle = theme.sub;
+          drawTracked(ctx, fmt.upper(fmt.m('others.splitTitle')), M, by, fmt.cased ? 4 : 0);
+          const bar = by + 34;
+          const p = ease.outCubic(prog(f.t, 1450, 900));
+          ctx.fillStyle = 'rgba(18,18,18,0.72)';
+          roundRect(ctx, M, bar, CW, 56, 28);
+          ctx.fill();
+          ctx.fillStyle = COLORS.orange;
+          roundRect(ctx, M, bar, Math.max(56, CW * share * p), 56, 28);
+          ctx.fill();
+          setFont(ctx, 'display', 72);
+          ctx.fillStyle = COLORS.orange;
+          drawTracked(ctx, dur(s.moving), M, bar + 56 + 92, 0);
+          ctx.fillStyle = theme.fg;
+          drawTracked(ctx, dur(totalSec), W - M, bar + 56 + 92, 0, 'right');
+          setFont(ctx, 'text', 26, 700);
+          ctx.fillStyle = theme.sub;
+          ctx.fillText(`${fmt.m('others.splitRun')} · ${fmt.pct(share)}`, M, bar + 56 + 136);
+          ctx.textAlign = 'right';
+          ctx.fillText(fmt.m('others.splitOther'), W - M, bar + 56 + 136);
+          ctx.textAlign = 'left';
+        });
+      }
     },
   };
 }

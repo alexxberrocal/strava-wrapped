@@ -65,7 +65,8 @@ const add = (i: Issue) => {
 // + cirílico (Oswald) y chino, japonés y coreano (Noto Sans): ver src/render/fonts.ts.
 const COVERED = /^[\u0000-ɏə̀-ͯʰ-˿Ḁ-ỿ -⁯₠-⃏℀-⅏←-↓−∕﻿�°×Ѐ-ԯᄀ-ᇿ　-ヿ㄰-㆏㐀-䶿一-鿿가-힯豈-﫿＀-￯]*$/u;
 
-const specs = catalog(N, SEED).filter((s) => !ONLY || ONLY.includes(s.id) || ONLY.includes(s.traits[0]));
+// --random: solo los atletas aleatorios (sin los 54 especiales).
+const specs = catalog(N, SEED).filter((s) => (!ONLY || ONLY.includes(s.id) || ONLY.includes(s.traits[0])) && (!args.random || /^r\d+$/.test(s.id)));
 mkdirSync(join(OUT, 'sheets'), { recursive: true });
 // Lienzos reutilizados (la memoria nativa de los canvas no la ve el recolector de basura de V8).
 const small = createCanvas(Math.round(W / 2), Math.round(H / 2));

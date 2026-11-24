@@ -3,7 +3,7 @@
  * hoja con todas las tarjetas + cada tarjeta a tamaño real, en samples/export-render/ (ignorado
  * por git: son datos personales).
  *
- *   npm run sim:export -- ruta/al/export.zip [--year=2026] [--lang=es|en] [--units=metric|imperial]
+ *   npm run sim:export -- ruta/al/export.zip [--year=2026] [--lang=es|ca|en|fr|…|ko] [--units=metric|imperial]
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -28,7 +28,8 @@ const { Countries } = await import('../../src/geo/countries');
 const { Cities } = await import('../../src/geo/cities');
 const { buildDeck, cardSkipReason } = await import('../../src/render/deck');
 const { CardPainter } = await import('../../src/render/card');
-const { Fmt } = await import('../../src/i18n/format');
+const { Fmt, registerCardMessages } = await import('../../src/i18n/format');
+const { isLang } = await import('../../src/i18n/langs');
 const { W, H } = await import('../../src/render/kit');
 type CardId = import('../../src/render/deck').CardId;
 
@@ -53,7 +54,8 @@ for (const a of acts) {
 }
 const years = [...byYear.values()].sort((a, b) => b.year - a.year);
 const year = Number(args.year ?? pickDefaultYear(years, scan.exportDate));
-const lang = (args.lang ?? 'es') as 'es' | 'en';
+const lang = isLang(args.lang) ? args.lang : 'es';
+if (lang !== 'es') registerCardMessages(lang, (await import(`../../src/i18n/cards/${lang}.ts`)).default);
 const units = (args.units ?? 'metric') as 'metric' | 'imperial';
 const runTypes = new Set(acts.filter((a) => a.category === 'run').map((a) => a.typeRaw));
 console.log(`Año por defecto: ${pickDefaultYear(years, scan.exportDate)} · dibujando ${year} (${lang}, ${units})`);
