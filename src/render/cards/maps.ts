@@ -115,16 +115,7 @@ export function allRunsCard(env: DeckEnv): Card {
   const { fmt, stats: s } = env;
   const routes = s.routes.slice(0, 400);
   const n = routes.length;
-  const area: Box = { x: M - 10, y: 720, w: CW + 20, h: 1010 };
-  let cols = Math.max(Math.min(4, Math.max(1, n)), Math.ceil(Math.sqrt((n * area.w) / area.h)));
-  let rows = Math.ceil(n / cols);
-  while (rows * (area.w / cols) > area.h) {
-    cols++;
-    rows = Math.ceil(n / cols);
-  }
-  const cell = area.w / cols;
-  // Pocas rutas: la cuadrícula se centra en vertical (sin un hueco enorme debajo).
-  const offY = Math.max(0, (area.h - rows * cell) / 2);
+  const gx = M - 10, gw = CW + 20, bottom = 1730;
   return {
     id: 'allruns',
     theme: 'orange',
@@ -135,18 +126,33 @@ export function allRunsCard(env: DeckEnv): Card {
       kicker(f, fmt.m('unit.runs', { n: s.routes.length }), M, KICK);
       const hs = 128;
       const y = KICK + 64 + capRatio(ctx) * hs;
-      headline(f, fmt.lines('allruns.title'), M, y, hs, { start: 120, colors: [COLORS.ink, COLORS.white] });
+      const title = fmt.lines('allruns.title');
+      headline(f, title, M, y, hs, { start: 120, colors: [COLORS.ink, COLORS.white] });
+      // La cuadrícula ocupa el hueco real bajo el titular (más bajo o más alto según el idioma): con
+      // pocas rutas, celdas más grandes (desde 3 columnas) y centrada, sin vacíos enormes.
+      const grid = f.memo('grid', () => {
+        const top = y + hs * 0.98 * (title.length - 1) + hs * 0.12 + 60;
+        const h = bottom - top;
+        let cols = Math.max(Math.min(3, Math.max(1, n)), Math.ceil(Math.sqrt((n * gw) / h)));
+        let rows = Math.ceil(n / cols);
+        while (rows * (gw / cols) > h) {
+          cols++;
+          rows = Math.ceil(n / cols);
+        }
+        const cell = gw / cols;
+        return { cols, cell, top: top + Math.max(0, (h - rows * cell) / 2) };
+      });
       const shapes = f.memo('shapes', () =>
         routes.map((r, i) => {
-          const c = i % cols, rr = Math.floor(i / cols);
-          const pad = cell * 0.14;
-          const pts = fitRoute(r.track, { x: area.x + c * cell + pad, y: area.y + offY + rr * cell + pad, w: cell - 2 * pad, h: cell - 2 * pad }, 0);
+          const c = i % grid.cols, rr = Math.floor(i / grid.cols);
+          const pad = grid.cell * 0.14;
+          const pts = fitRoute(r.track, { x: gx + c * grid.cell + pad, y: grid.top + rr * grid.cell + pad, w: grid.cell - 2 * pad, h: grid.cell - 2 * pad }, 0);
           return { pts, cum: cumulative(pts) };
         }),
       );
       ctx.save();
       ctx.strokeStyle = COLORS.white;
-      ctx.lineWidth = Math.max(1.6, Math.min(3.4, cell / 30));
+      ctx.lineWidth = Math.max(1.6, Math.min(3.4, grid.cell / 30));
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       const span = 2600;

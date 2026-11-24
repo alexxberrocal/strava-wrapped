@@ -152,8 +152,10 @@ export function recordsCard(env: DeckEnv): Card {
       const top0 = y + hs * 0.95 + 70;
       // Pocas marcas: filas más altas y el bloque algo centrado (sin hueco enorme abajo).
       const avail = 1760 - top0;
-      const rowH = Math.min(rows.length <= 3 ? 250 : 196, avail / Math.max(1, rows.length));
-      const top = top0 + Math.max(0, avail - rowH * rows.length) * 0.35;
+      // Con una o dos marcas, filas aún más altas y el bloque centrado del todo.
+      const few = rows.length <= 2;
+      const rowH = Math.min(few ? 300 : rows.length <= 3 ? 250 : 196, avail / Math.max(1, rows.length));
+      const top = top0 + Math.max(0, avail - rowH * rows.length) * (few ? 0.5 : 0.35);
       rows.forEach((e, i) => {
         const yy = top + i * rowH;
         const pl = ease.inOutCubic(prog(f.t, 700 + i * 160, 700));
