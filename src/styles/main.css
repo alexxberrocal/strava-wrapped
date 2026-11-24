@@ -1314,7 +1314,7 @@ details.advanced[open] summary {
  */
 :root:lang(ru) {
   --display: 'RR Display Cyr', 'Anton', 'Arial Narrow', Impact, sans-serif;
-  --text: 'Archivo', 'Helvetica Neue', 'Segoe UI', Roboto, Arial, sans-serif;
+  --text: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 :root:lang(zh) {
   --display: 'Anton', 'RR Display SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;

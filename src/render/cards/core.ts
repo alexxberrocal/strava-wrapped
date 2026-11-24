@@ -1,6 +1,6 @@
 import { geoInterpolate, geoMercator, geoNaturalEarth1, geoPath } from 'd3-geo';
 import { ease, prog, rng } from '../anim';
-import { counting, fadeUp, headline, heroNumber, kicker, paragraph, ribbon } from '../blocks';
+import { belowHero, counting, fadeUp, headline, heroNumber, kicker, paragraph, ribbon } from '../blocks';
 import type { Card, DeckEnv, Frame } from '../card';
 import { COLORS, CW, H, M, W, capRatio, cumulative, drawTracked, fitRoute, fitSize, roundRect, setFont, tracePartial, trackedWidth, type Box } from '../kit';
 import { EARTH_KM, MARATHON_M, pickDestination, pickLandmark } from '../../stats/equivalences';
@@ -37,7 +37,13 @@ export function introCard(env: DeckEnv): Card {
       kicker(f, fmt.m('intro.kicker'), M, KICK, 80);
       const name = fmt.upper(s.name || fmt.m('runner'));
       const size = fitSize(ctx, name, 'display', 290, CW);
-      let y = heroBaseline(f, size, KICK + 70);
+      // Nombres con tilde (ÁLVARO, ÀLEX, ÍÑIGO): la tilde no puede rozar el antetítulo de encima.
+      const accentTop = f.memo(`introTop:${name}:${size}`, () => {
+        setFont(ctx, 'display', size);
+        // headline() lo dibuja en mayúsculas también en chino, japonés y coreano ("MARÍA").
+        return KICK + 30 + ctx.measureText(name.toUpperCase()).actualBoundingBoxAscent;
+      });
+      let y = Math.max(heroBaseline(f, size, KICK + 70), accentTop);
       headline(f, [name], M, y, size, { color: COLORS.ink, start: 200 });
       y += 290 * 0.98 + 10;
       headline(f, [String(s.year)], M, y, 290, { color: COLORS.white, start: 380 });
@@ -99,6 +105,7 @@ export function distanceCard(env: DeckEnv): Card {
         lines = fmt.lines('distance.laps', { n: Math.round(s.distance / 400) });
       }
       const hs = Math.min(112, ...lines.map((l) => fitSize(ctx, fmt.upper(l), 'display', 112, CW)));
+      y = belowHero(f, fmt.dist(s.distance), size, base, lines[0], hs);
       headline(f, lines, M, y, hs, { start: 500, colors });
       y += hs * 0.98 * (lines.length - 1) + 92;
       const marathonsTxt = marathonsLabel(fmt, marathons);
@@ -336,8 +343,8 @@ export function timeCard(env: DeckEnv): Card {
       const size = 330;
       const base = heroBaseline(f, size);
       heroNumber(f, fmt.num(counting(f, hours, 150, 1600), 0), fmt.upper(fmt.m('unit.h')), M, base, size, { start: 100, unitScale: 0.32, fit: fmt.num(hours, 0) });
-      const y = base + 150;
       const tLines = days >= 1 ? fmt.lines('time.days', { n: fmt.round(days, 1) }) : fmt.lines('time.minutes', { n: Math.round(s.moving / 60) });
+      const y = belowHero(f, fmt.num(hours, 0), size, base, tLines[0], 112);
       headline(f, tLines, M, y, 112, { start: 450, color: COLORS.ink });
       // Si empezaste a correr a mitad de año, lo justo es contar desde tu primera carrera.
       const since = s.firstRunDoy >= 45 && s.activeDays >= 3 ? s.firstRunDoy : 0;
@@ -475,8 +482,8 @@ export function elevationCard(env: DeckEnv): Card {
       const size = 330;
       const base = heroBaseline(f, size);
       heroNumber(f, fmt.elev(counting(f, s.elevation, 150, 1700)), fmt.upper(fmt.elevUnit), M, base, size, { start: 100, unitScale: 0.32, fit: fmt.elev(s.elevation) });
-      const y = base + 150;
       const hs = Math.min(112, ...lines.map((l) => fitSize(ctx, fmt.upper(l), 'display', 112, CW)));
+      const y = belowHero(f, fmt.elev(s.elevation), size, base, lines[0], hs);
       headline(f, lines, M, y, hs, { start: 450, colors: lines.map((_l, i) => (i === lines.length - 1 ? COLORS.orange : theme.fg)) });
       const parts: string[] = [];
       if (s.biggestClimb && s.biggestClimb.elevGain > 0)
@@ -741,7 +748,7 @@ export function heartCard(env: DeckEnv): Card {
       const base = heroBaseline(f, size);
       const counted = fmt.big(counting(f, hr.beats, 150, 1700));
       heroNumber(f, counted.unit === big.unit ? counted.value : big.value, big.unit, M, base, size, { start: 100, unitScale: 0.32, fit: big.value });
-      const y = base + 150;
+      const y = belowHero(f, big.value, size, base, fmt.lines('heart.title')[0], 112);
       headline(f, fmt.lines('heart.title'), M, y, 112, { start: 450 });
       const avg = `${fmt.num(hr.avg)}\u00a0${bpm}`;
       const parts = [maxOk ? fmt.m('heart.avgMax', { avg, max: `${fmt.num(hr.max)}\u00a0${bpm}` }) : fmt.m('heart.avg', { avg })];

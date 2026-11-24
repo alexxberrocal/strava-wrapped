@@ -761,17 +761,28 @@ export function archetypeCard(env: DeckEnv): Card {
       const y = topBaseline(f, hs);
       headline(f, [title[0], title[1]], M, y, hs, { start: 150, colors: [COLORS.ink, COLORS.white], lineHeight: 0.93, stagger: 160 });
       const py = y + hs * 0.93 + 96;
-      paragraph(f, desc, M, py, CW, 40, { start: 700, color: COLORS.ink, hl: COLORS.white });
-      archetypeIcon(f, key, W / 2, 1300, ease.inOutCubic(prog(f.t, 1200, 2200)));
+      const lay = paragraph(f, desc, M, py, CW, 40, { start: 700, color: COLORS.ink, hl: COLORS.white });
+      // El icono, centrado en el hueco que queda entre el texto y los datos (con títulos cortos,
+      // como en ruso, quedaba un vacío enorme encima).
+      const textBottom = py + lay.height - 28;
+      const iconY = Math.min(1300, Math.max(textBottom + 230, (textBottom + 1582) / 2 + 20));
+      archetypeIcon(f, key, W / 2, iconY, ease.inOutCubic(prog(f.t, 1200, 2200)));
+      // Cada dato cabe en su columna (1.067.995 pies de desnivel no pisa al de al lado): las tres
+      // cifras comparten el tamaño que quepa; cada etiqueta, el suyo.
+      const colW = CW / 3 - 30;
+      const fit = f.memo('facts', () => ({
+        vs: Math.min(76, ...facts.map(([v]) => fitSize(ctx, v, 'display', 76, colW, 400, 36))),
+        ls: facts.map(([, l]) => fitSize(ctx, l, 'text', 24, colW, 700, 15)),
+      }));
       facts.forEach(([v, l], i) => {
         fadeUp(f, 1800 + i * 140, () => {
           const x = M + i * (CW / 3);
           ctx.fillStyle = 'rgba(18,18,18,0.18)';
-          ctx.fillRect(x, 1582, CW / 3 - 30, 3);
-          setFont(ctx, 'display', 76);
+          ctx.fillRect(x, 1582, colW, 3);
+          setFont(ctx, 'display', fit.vs);
           ctx.fillStyle = COLORS.ink;
           drawTracked(ctx, v, x, 1672, 0);
-          setFont(ctx, 'text', 24, 700);
+          setFont(ctx, 'text', fit.ls[i], 700);
           ctx.fillStyle = 'rgba(18,18,18,0.75)';
           ctx.fillText(l, x, 1716);
         });
@@ -850,25 +861,37 @@ export function summaryCard(env: DeckEnv): Card {
       });
       const top = ny + 120;
       const colW = CW / 2;
+      // Cifra + unidad caben en su celda ("1,067,995 英尺"): se reduce lo justo; y la etiqueta, igual.
+      const fits = f.memo('cells', () =>
+        cells.map(([v, u, l]) => {
+          setFont(ctx, 'display', 112);
+          const wv = ctx.measureText(v).width;
+          setFont(ctx, 'display', 44);
+          const wu = u ? ctx.measureText(u).width + 10 : 0;
+          return { k: Math.min(1, (colW - 36) / (wv + wu)), ls: fitSize(ctx, l, 'text', 23, colW - 36, 800, 14, fmt.cased ? 3 / 23 : 0) };
+        }),
+      );
       cells.forEach(([v, u, l], i) => {
         const col = i % 2, row = Math.floor(i / 2);
         const x = M + col * colW;
         const yy = top + row * 225;
+        const { k, ls } = fits[i];
         fadeUp(f, 700 + i * 110, () => {
           ctx.fillStyle = theme.faint;
           ctx.fillRect(x, yy, colW - 36, 3);
           setFont(ctx, 'display', 112);
-          ctx.fillStyle = COLORS.orange;
           const vb = yy + 26 + capRatio(ctx) * 112;
+          setFont(ctx, 'display', 112 * k);
+          ctx.fillStyle = COLORS.orange;
           const w = drawTracked(ctx, v, x, vb, 0);
           if (u) {
-            setFont(ctx, 'display', 44);
+            setFont(ctx, 'display', 44 * k);
             ctx.fillStyle = theme.fg;
-            drawTracked(ctx, u, x + w + 10, vb, 0);
+            drawTracked(ctx, u, x + w + 10 * k, vb, 0);
           }
-          setFont(ctx, 'text', 23, 800);
+          setFont(ctx, 'text', ls, 800);
           ctx.fillStyle = theme.sub;
-          drawTracked(ctx, l, x, vb + 46, fmt.cased ? 3 : 0);
+          drawTracked(ctx, l, x, vb + 46, fmt.cased ? (3 * ls) / 23 : 0);
         });
       });
       pill(f, fmt.upper(fmt.m(`arch.${s.archetype.key}.pill` as CardKey)), M, 1640, { bg: COLORS.orange, fg: COLORS.ink, size: 30, start: 1500 });

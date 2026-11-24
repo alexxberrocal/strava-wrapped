@@ -23,7 +23,7 @@ const args = Object.fromEntries(process.argv.slice(2).map((a) => a.replace(/^--/
 const N = Number(args.n ?? 200);
 const SEED = Number(args.seed ?? 1);
 const SHEETS = (args.sheets ?? 'flagged') as 'all' | 'flagged' | 'none' | 'special';
-const ONLY = args.only ?? null;
+const ONLY: string[] | null = args.only ? args.only.split(',') : null;
 const OUT = join(ROOT, args.out ?? 'samples/sim');
 const BOTH = args.both === 'true';
 const { LANGS, isLang } = await import('../../src/i18n/langs');
@@ -65,7 +65,7 @@ const add = (i: Issue) => {
 // + cirílico (Oswald) y chino, japonés y coreano (Noto Sans): ver src/render/fonts.ts.
 const COVERED = /^[\u0000-ɏə̀-ͯʰ-˿Ḁ-ỿ -⁯₠-⃏℀-⅏←-↓−∕﻿�°×Ѐ-ԯᄀ-ᇿ　-ヿ㄰-㆏㐀-䶿一-鿿가-힯豈-﫿＀-￯]*$/u;
 
-const specs = catalog(N, SEED).filter((s) => !ONLY || s.id === ONLY || s.traits[0] === ONLY);
+const specs = catalog(N, SEED).filter((s) => !ONLY || ONLY.includes(s.id) || ONLY.includes(s.traits[0]));
 mkdirSync(join(OUT, 'sheets'), { recursive: true });
 // Lienzos reutilizados (la memoria nativa de los canvas no la ve el recolector de basura de V8).
 const small = createCanvas(Math.round(W / 2), Math.round(H / 2));

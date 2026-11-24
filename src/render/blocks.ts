@@ -123,6 +123,21 @@ export function headline(f: Frame, lines: string[], x: number, y: number, size0:
   return lines.length * lh;
 }
 
+/**
+ * Línea base del titular que va bajo una cifra protagonista: `gap` por debajo, o más si la cifra
+ * baja (la coma de "42,2") a la vez que la primera línea del titular sube (tildes: "1 MARATÓN").
+ */
+export function belowHero(f: Frame, heroText: string, heroSize: number, base: number, line0: string, hs: number, gap = 150): number {
+  const { ctx } = f;
+  return f.memo(`below:${heroText}:${heroSize}:${line0}:${hs}:${gap}`, () => {
+    setFont(ctx, 'display', heroSize);
+    const desc = Math.max(0, ctx.measureText(heroText).actualBoundingBoxDescent);
+    setFont(ctx, 'display', hs);
+    const asc = ctx.measureText(line0.toUpperCase()).actualBoundingBoxAscent;
+    return base + Math.max(gap, desc + asc + hs * 0.22);
+  });
+}
+
 /** Párrafo con **resaltados**; las líneas aparecen una tras otra. `y` = base de la primera línea. */
 export function paragraph(f: Frame, text: string, x: number, y: number, width: number, size = 38, o: { start?: number; color?: string; hl?: string; align?: 'left' | 'center'; weight?: number } = {}): RichLayout {
   const { ctx, theme } = f;

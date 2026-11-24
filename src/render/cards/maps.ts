@@ -1,7 +1,7 @@
 import { geoMercator, geoPath } from 'd3-geo';
 import type { MultiPolygon, Position } from 'geojson';
 import { ease, prog } from '../anim';
-import { fadeUp, headline, heroNumber, kicker, paragraph } from '../blocks';
+import { belowHero, fadeUp, headline, heroNumber, kicker, paragraph } from '../blocks';
 import type { Card, DeckEnv, Frame } from '../card';
 import { COLORS, CW, H, M, W, capRatio, cumulative, drawTracked, fitRoute, fitSize, projectRoutes, roundRect, setFont, tracePartial, traceFull, type Box, type Ctx } from '../kit';
 import { cleanName, splitLines } from './common';
@@ -177,7 +177,7 @@ export function longestCard(env: DeckEnv): Card {
       heroNumber(f, fmt.dist(r.distance), fmt.upper(fmt.distUnit), M, base, size, { start: 100, unitScale: 0.32 });
       const lines = splitLines(fmt.upper(title), 2, 18);
       const hs = Math.min(96, ...lines.map((l) => fitSize(ctx, l, 'display', 96, CW)));
-      let y = base + 130;
+      let y = belowHero(f, fmt.dist(r.distance), size, base, lines[0], hs, 130);
       headline(f, lines, M, y, hs, { start: 400 });
       y += hs * 0.98 * (lines.length - 1) + 74;
       // Fila de datos

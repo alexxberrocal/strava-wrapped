@@ -95,7 +95,9 @@ const DISPLAY_STACKS: Record<Script, string> = {
 };
 const TEXT_STACKS: Record<Script, string> = {
   latin: 'Archivo, "Helvetica Neue", Arial, sans-serif',
-  cyrillic: 'Archivo, "Helvetica Neue", "Segoe UI", Roboto, Arial, sans-serif',
+  // Archivo no tiene cirílico: todo el texto con la letra del sistema (si no, comas y puntos
+  // salían en Archivo y las letras en otra tipografía).
+  cyrillic: 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
   sc: 'Archivo, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Noto Sans CJK SC", sans-serif',
   ja: 'Archivo, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", YuGothic, Meiryo, "Noto Sans JP", "Noto Sans CJK JP", sans-serif',
   ko: 'Archivo, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Noto Sans CJK KR", sans-serif',

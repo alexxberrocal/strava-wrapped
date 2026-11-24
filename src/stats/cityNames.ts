@@ -210,14 +210,28 @@ Rio de Janeiro|||||||Рио-де-Жанейро|里约热内卢|リオデジャ�
 
 const COLS: Lang[] = ['ca', 'fr', 'de', 'it', 'pt', 'nl', 'ru', 'zh', 'ja', 'ko'];
 const NAMES = new Map<string, Partial<Record<Lang, string>>>();
+/** Cualquier variante (inglés, local o de otro idioma; sin mayúsculas) → fila de la tabla. */
+const BY_VARIANT = new Map<string, Partial<Record<Lang, string>>>();
 for (const line of TABLE.split('\n')) {
   if (!line.trim()) continue;
   const [en, ...rest] = line.split('|');
-  const m: Partial<Record<Lang, string>> = {};
+  const m: Partial<Record<Lang, string>> = { en };
   rest.forEach((v, i) => {
     if (v) m[COLS[i]] = v;
   });
   NAMES.set(en, m);
+  for (const v of [en, ...rest]) if (v && !BY_VARIANT.has(v.toLowerCase())) BY_VARIANT.set(v.toLowerCase(), m);
+}
+
+/**
+ * Nombre de una ciudad tal como llega de GeoNames ("Sevilla", "Beijing") en el idioma pedido, si
+ * está en la tabla ("Севилья", "베이징"); si no, tal cual. El español no tiene columna: se deja.
+ */
+export function localCityName(name: string, lang: Lang): string {
+  if (lang === 'es') return name;
+  const m = BY_VARIANT.get(name.toLowerCase());
+  if (!m) return name;
+  return m[lang] ?? (lang === 'ca' ? name : (m.en ?? name));
 }
 
 /** Nombre de una ciudad de destino en el idioma pedido (inglés si no hay traducción). */

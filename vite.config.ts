@@ -22,14 +22,21 @@ function sitePages(): Plugin {
     writeBundle: {
       sequential: true,
       order: 'post',
-      handler(opts) {
+      handler(opts, bundle) {
         const dir = opts.dir ?? resolve(import.meta.dirname, 'dist');
         const file = join(dir, 'index.html');
         if (!existsSync(file)) return;
         const html = readFileSync(file, 'utf8');
+        // Tipografía de titulares de cada escritura (src/render/fonts.ts), enlazada ya en el HTML
+        // de su idioma: los titulares salen bien desde el primer pintado.
+        const scriptCss = (name: string) => Object.keys(bundle).find((f) => new RegExp(`^assets/${name}-[\\w-]+\\.css$`).test(f));
+        const FONT_CSS: Partial<Record<(typeof LANGS)[number], string | undefined>> = { ru: scriptCss('cyr'), zh: scriptCss('sc'), ja: scriptCss('ja'), ko: scriptCss('ko') };
         for (const lang of LANGS) {
           mkdirSync(join(dir, lang), { recursive: true });
-          writeFileSync(join(dir, lang, 'index.html'), localizeHtml(html, lang, SITE_URL, `${lang}/`).replace(/\s*<!--lang-redirect-->/, ''));
+          let page = localizeHtml(html, lang, SITE_URL, `${lang}/`).replace(/\s*<!--lang-redirect-->/, '');
+          const css = FONT_CSS[lang];
+          if (css) page = page.replace('</head>', `  <link rel="stylesheet" href="../${css}" />\n  </head>`);
+          writeFileSync(join(dir, lang, 'index.html'), page);
         }
         // La raíz: en español para quien no ejecuta JavaScript (buscadores, vistas previas); el
         // resto pasa a la carpeta de su idioma antes de pintar nada.
