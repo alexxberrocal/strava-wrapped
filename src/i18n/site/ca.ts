@@ -59,6 +59,7 @@ const ca: SiteMessages = {
   'setup.map': 'Mostrar el mapa de calor de la meva ciutat',
   'setup.trim': 'Amagar l’inici i el final de cada ruta (protegeix casa teva)',
   'setup.types': 'Què compta com a córrer',
+  'setup.customize': 'Personalitzar',
   'setup.go': 'Veure el meu any',
   'setup.wait': 'Analitzant… {pct}',
   'setup.restart': 'Fer servir un altre arxiu',

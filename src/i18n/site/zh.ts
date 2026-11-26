@@ -59,6 +59,7 @@ const zh: SiteMessages = {
   'setup.map': '显示我所在城市的热力图',
   'setup.trim': '隐藏每条路线的起点和终点（保护你的住址）',
   'setup.types': '哪些算作跑步',
+  'setup.customize': '自定义',
   'setup.go': '查看我的一年',
   'setup.wait': '分析中…… {pct}',
   'setup.restart': '换一个文件',

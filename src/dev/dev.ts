@@ -92,96 +92,18 @@ main().catch((e) => {
 });
 
 /**
- * Imagen de vista previa del enlace (1200×630, JPEG ligero para WhatsApp) en el idioma pedido:
- * public/og-xx.jpg. Con lang=es también regenera los iconos.
+ * Imagen de vista previa del enlace en el navegador (la de verdad la genera `npm run og`, que
+ * comprueba solapes): public/og-xx.jpg. Con lang=es también regenera los iconos.
  */
 async function renderSocial(painter: CardPainter, deck: import('../render/card').Card[], lang: Lang) {
-  const { COLORS, setFont, drawTracked, trackedWidth } = await import('../render/kit');
-  const { LOCALE, NO_CASE } = await import('../i18n/langs');
+  const { COLORS } = await import('../render/kit');
+  const { paintSocial, SOCIAL_W, SOCIAL_H } = await import('../render/social');
   await loadSiteStrings(lang);
-  const upper = (t: string) => (NO_CASE.has(lang) ? t : t.toLocaleUpperCase(LOCALE[lang]));
   const og = document.createElement('canvas');
-  og.width = 1200;
-  og.height = 630;
-  const g = og.getContext('2d')!;
-  g.fillStyle = COLORS.paper;
-  g.fillRect(0, 0, 1200, 630);
-  g.fillStyle = COLORS.orange;
-  g.beginPath();
-  g.arc(1010, 330, 330, 0, Math.PI * 2);
-  g.fill();
-  const pick = ['intro', 'heatmap', 'summary'].map((id) => deck.find((c) => c.id === id)!).filter(Boolean);
-  const cw = 236, ch = (cw * H) / W;
-  const pos = [
-    { x: 760, y: 150, r: -0.1 },
-    { x: 1065, y: 170, r: 0.09 },
-    { x: 912, y: 118, r: 0 },
-  ];
-  pick.forEach((card, i) => {
-    const c = document.createElement('canvas');
-    c.width = cw * 2;
-    c.height = Math.round(ch * 2);
-    painter.clone().paint(c.getContext('2d')!, card, 0, c.width / W, { still: true });
-    const p = pos[i];
-    g.save();
-    g.translate(p.x, p.y + ch / 2);
-    g.rotate(p.r);
-    g.shadowColor = 'rgba(0,0,0,0.35)';
-    g.shadowBlur = 40;
-    g.shadowOffsetY = 18;
-    g.beginPath();
-    g.roundRect(-cw / 2, -ch / 2, cw, ch, 16);
-    g.fillStyle = '#000';
-    g.fill();
-    g.shadowColor = 'transparent';
-    g.save();
-    g.clip();
-    g.drawImage(c, -cw / 2, -ch / 2, cw, ch);
-    g.restore();
-    g.restore();
-  });
-  const X = 68, MAXW = 535;
-  const fit = (text: string, kind: 'display' | 'text', size: number, weight: number, track: number, min: number) => {
-    let s = size;
-    for (; s > min; s -= 1) {
-      setFont(g, kind, s, weight);
-      if (trackedWidth(g, text, track * s) <= MAXW) break;
-    }
-    return s;
-  };
-  // Antetítulo.
-  const kick = upper(tr('hero.kicker', {}, lang));
-  const track = NO_CASE.has(lang) ? 0 : 0.2;
-  const ks = fit(kick, 'text', 22, 800, track, 14);
-  g.fillStyle = COLORS.orange;
-  g.fillRect(X, 104, 40, 6);
-  setFont(g, 'text', ks, 800);
-  drawTracked(g, kick, X + 56, 114, track * ks);
-  // Titular: las líneas del de la portada; la que va en <em>, en naranja.
-  const raw = tr('hero.title', {}, lang).split(/<br\s*\/?>/i);
-  const lines = raw.map((l) => ({ text: upper(l.replace(/<[^>]+>/g, '').trim()), hl: /<em>/i.test(l) }));
-  // Cabe a lo ancho (535 px) y a lo alto (entre el antetítulo y el pie): los ideogramas son más altos.
-  const layout = (sz: number) => {
-    setFont(g, 'display', sz);
-    const m = lines.map((l) => g.measureText(l.text));
-    const ys = [150 + m[0].actualBoundingBoxAscent];
-    for (let i = 1; i < lines.length; i++) ys.push(ys[i - 1] + Math.max(sz * 0.94, m[i - 1].actualBoundingBoxDescent + sz * 0.07 + m[i].actualBoundingBoxAscent));
-    return { ys, end: ys[ys.length - 1] + m[m.length - 1].actualBoundingBoxDescent };
-  };
-  let size = Math.min(...lines.map((l) => fit(l.text, 'display', 104, 400, 0.005, 40)));
-  let lay = layout(size);
-  while (lay.end > 548 && size > 40) lay = layout((size -= 2));
-  setFont(g, 'display', size);
-  lines.forEach((l, i) => {
-    g.fillStyle = l.hl ? COLORS.orange : COLORS.ink;
-    drawTracked(g, l.text, X - 2, lay.ys[i], size * 0.005);
-  });
-  // Pie: dominio y "Compatible con Strava".
-  const foot = `${BRAND.domain.toUpperCase()}  ·  ${upper(tr('hero.compat', {}, lang).split(' · ')[0])}`;
-  const fs = fit(foot, 'text', 22, 800, NO_CASE.has(lang) ? 0.05 : 0.16, 14);
-  setFont(g, 'text', fs, 800);
-  g.fillStyle = COLORS.ink;
-  drawTracked(g, foot, X, 592, (NO_CASE.has(lang) ? 0.05 : 0.16) * fs);
+  og.width = SOCIAL_W;
+  og.height = SOCIAL_H;
+  const issues = paintSocial(og.getContext('2d')!, painter, deck, { lang, kicker: tr('hero.kicker', {}, lang), title: tr('hero.title', {}, lang), compat: tr('hero.compat', {}, lang), domain: BRAND.domain }, (w, h) => Object.assign(document.createElement('canvas'), { width: w, height: h }));
+  if (issues.length) console.warn('Vista previa:', issues.join(' · '));
   const save = async (canvas: HTMLCanvasElement, name: string) => {
     const type = name.endsWith('.jpg') ? 'image/jpeg' : 'image/png';
     const blob = await new Promise<Blob>((r) => canvas.toBlob((b) => r(b!), type, 0.86));

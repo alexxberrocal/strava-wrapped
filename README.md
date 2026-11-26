@@ -58,8 +58,9 @@ npm run dev          # http://localhost:5173
 
 - `http://localhost:5173/dev.html` muestra todas las tarjetas con la demo
   (`?card=distance&t=1200`, `?lang=ru&units=imperial`, `?play`, casos extremos con
-  `?case=ultra|tiny|nogps|longname|partial|down`). Con `?og&lang=xx` regenera la imagen de vista
-  previa `public/og-xx.jpg` de ese idioma.
+  `?case=ultra|tiny|nogps|longname|partial|down`).
+- `npm run og` regenera las imágenes de vista previa al compartir el enlace (`public/og-xx.jpg`, una
+  por idioma) y comprueba que ningún texto pise a otro, a las tarjetas o al círculo.
 - `npm run sample` genera `samples/export_12345678.zip` (export de prueba realista) y
   `http://localhost:5173/?sample` lo carga para probar el flujo completo.
 - `npm test` (Vitest) · `npm run typecheck` · `npm run build` (sale en `dist/`).

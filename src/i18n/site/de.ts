@@ -59,6 +59,7 @@ const de: SiteMessages = {
   'setup.map': 'Heatmap meiner Stadt zeigen',
   'setup.trim': 'Start und Ende jeder Strecke ausblenden (schützt dein Zuhause)',
   'setup.types': 'Was als Laufen zählt',
+  'setup.customize': 'Anpassen',
   'setup.go': 'Mein Jahr ansehen',
   'setup.wait': 'Analyse … {pct}',
   'setup.restart': 'Andere Datei verwenden',

@@ -160,6 +160,9 @@ async function main() {
       await page.waitForFunction(`(() => { const b = document.querySelector('.panel__actions .btn--primary'); return !!b && !b.disabled; })()`, { timeout: 90000 });
       await page.evaluate(`document.getElementById('crear').scrollIntoView()`);
       await check(page, report, `${lang} · ajustes · móvil`, errors, `${lang}-ajustes-movil`);
+      // "Personalizar" desplegado (año, unidades, mapa, privacidad, tipos de actividad).
+      await page.click('details.options > summary');
+      await check(page, report, `${lang} · ajustes abiertos · móvil`, errors, `${lang}-ajustes-abiertos-movil`);
       await page.click('.panel__actions .btn--primary');
       await page.waitForSelector('.story', { visible: true, timeout: 30000 });
       await new Promise((r) => setTimeout(r, 1500));

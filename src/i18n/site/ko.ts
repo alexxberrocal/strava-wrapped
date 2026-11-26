@@ -60,6 +60,7 @@ const ko: SiteMessages = {
   'setup.map': '내 도시 히트맵 보기',
   'setup.trim': '각 경로의 시작과 끝 숨기기 (집 위치 보호)',
   'setup.types': '러닝으로 셀 활동',
+  'setup.customize': '맞춤 설정',
   'setup.go': '나의 한 해 보기',
   'setup.wait': '분석 중… {pct}',
   'setup.restart': '다른 파일 사용',

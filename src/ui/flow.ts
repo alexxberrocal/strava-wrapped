@@ -169,6 +169,7 @@ export class Flow {
   private goBtn: HTMLButtonElement | null = null;
   private summaryEl: HTMLElement | null = null;
   private warnEl: HTMLElement | null = null;
+  private optionsEl: HTMLDetailsElement | null = null;
 
   private setGo(ready: boolean, p: number) {
     if (!this.goBtn) return;
@@ -185,6 +186,8 @@ export class Flow {
     this.summaryEl.textContent = tr('flow.summary', { runs: fmt.num(runs.length), year: this.settings.year, km: fmt.distWithUnit(dist, 0) }) + skipped;
     if (this.warnEl) {
       this.warnEl.hidden = runs.length > 0;
+      // Sin carreras en ese año: las opciones (año y tipos de actividad) se abren solas.
+      if (!runs.length && this.optionsEl) this.optionsEl.open = true;
       this.warnEl.textContent = tr('err.noRuns', { year: this.settings.year });
     }
   }
@@ -243,6 +246,21 @@ export class Flow {
     const restart = h('button', { type: 'button', class: 'linkish' }, tr('setup.restart'));
     restart.addEventListener('click', () => this.resetToDrop());
 
+    // A la vista solo lo esencial (el nombre y el botón): año, unidades, mapa, privacidad y tipos de
+    // actividad ya vienen bien elegidos y quedan plegados en "Personalizar".
+    this.optionsEl = h(
+      'details',
+      { class: 'options' },
+      h('summary', {}, tr('setup.customize')),
+      h(
+        'div',
+        { class: 'setup' },
+        h('div', { class: 'field field--full' }, h('span', { class: 'field__label' }, tr('setup.year')), yearChips),
+        h('div', { class: 'field field--full' }, h('span', { class: 'field__label' }, tr('setup.units')), unitChips),
+        h('div', { class: 'field field--full' }, toggle(tr('setup.map'), s.cityMap, (v) => (s.cityMap = v)), toggle(tr('setup.trim'), s.trim, (v) => (s.trim = v))),
+        h('div', { class: 'field field--full' }, h('span', { class: 'field__label' }, tr('setup.types')), typesWrap),
+      ),
+    ) as HTMLDetailsElement;
     this.flowEl.replaceChildren(
       h(
         'div',
@@ -250,15 +268,8 @@ export class Flow {
         hello,
         this.summaryEl,
         this.warnEl,
-        h(
-          'div',
-          { class: 'setup' },
-          h('div', { class: 'field field--full' }, h('span', { class: 'field__label' }, tr('setup.year')), yearChips),
-          h('label', { class: 'field' }, h('span', { class: 'field__label' }, tr('setup.name')), nameInput),
-          h('div', { class: 'field' }, h('span', { class: 'field__label' }, tr('setup.units')), unitChips),
-          h('div', { class: 'field field--full' }, toggle(tr('setup.map'), s.cityMap, (v) => (s.cityMap = v)), toggle(tr('setup.trim'), s.trim, (v) => (s.trim = v))),
-          h('details', { class: 'advanced field--full' }, h('summary', {}, tr('setup.types')), typesWrap),
-        ),
+        h('label', { class: 'field field--name' }, h('span', { class: 'field__label' }, tr('setup.name')), nameInput),
+        this.optionsEl,
         h('div', { class: 'panel__actions' }, this.goBtn, restart),
       ),
     );

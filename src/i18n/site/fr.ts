@@ -59,6 +59,7 @@ const fr: SiteMessages = {
   'setup.map': 'Afficher la carte de chaleur de ma ville',
   'setup.trim': 'Masquer le début et la fin de chaque parcours (protège ton domicile)',
   'setup.types': 'Ce qui compte comme course',
+  'setup.customize': 'Personnaliser',
   'setup.go': 'Voir mon année',
   'setup.wait': 'Analyse… {pct}',
   'setup.restart': 'Utiliser un autre fichier',

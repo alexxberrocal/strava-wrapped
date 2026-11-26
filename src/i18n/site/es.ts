@@ -58,6 +58,7 @@ export const es = {
   'setup.map': 'Mostrar el mapa de calor de mi ciudad',
   'setup.trim': 'Ocultar inicio y fin de cada ruta (protege tu casa)',
   'setup.types': 'Qué cuenta como correr',
+  'setup.customize': 'Personalizar',
   'setup.go': 'Ver mi año',
   'setup.wait': 'Analizando… {pct}',
   'setup.restart': 'Usar otro archivo',

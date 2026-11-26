@@ -722,13 +722,43 @@ button {
   color: var(--paper);
   font-weight: 600;
 }
-details.advanced summary {
+/* Ajustes: el nombre a la vista; el resto plegado en "Personalizar". */
+.field--name {
+  margin: 4px 0 18px;
+}
+details.options {
+  margin: 0 0 26px;
+  border-top: 1px solid var(--line-light);
+  border-bottom: 1px solid var(--line-light);
+}
+details.options > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 52px;
+  list-style: none;
   cursor: pointer;
   font-weight: 700;
-  color: rgba(243, 238, 230, 0.75);
+  color: rgba(243, 238, 230, 0.8);
+  overflow-x: clip;
 }
-details.advanced[open] summary {
-  margin-bottom: 12px;
+details.options > summary::-webkit-details-marker {
+  display: none;
+}
+details.options > summary::after {
+  content: '+';
+  font-family: var(--display);
+  font-size: 28px;
+  line-height: 0.8;
+  color: var(--orange);
+  transition: transform 0.2s;
+}
+details.options[open] > summary::after {
+  transform: rotate(45deg);
+}
+details.options .setup {
+  margin: 8px 0 22px;
 }
 
 /* ---------- Galería ---------- */

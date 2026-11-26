@@ -59,6 +59,7 @@ const nl: SiteMessages = {
   'setup.map': 'Heatmap van mijn stad tonen',
   'setup.trim': 'Begin en einde van elke route verbergen (beschermt je huis)',
   'setup.types': 'Wat telt als hardlopen',
+  'setup.customize': 'Aanpassen',
   'setup.go': 'Bekijk mijn jaar',
   'setup.wait': 'Analyseren… {pct}',
   'setup.restart': 'Ander bestand gebruiken',

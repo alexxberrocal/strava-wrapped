@@ -17,7 +17,8 @@
     "sim:ficheros": "node --import tsx scripts/sim/files-fuzz.ts",
     "sim:export": "node --expose-gc --import tsx scripts/sim/export.ts",
     "check:web": "vite build && node --import tsx scripts/check-web.ts",
-    "fonts": "node --import tsx scripts/gen-fonts.ts"
+    "fonts": "node --import tsx scripts/gen-fonts.ts",
+    "og": "node --import tsx scripts/og.ts"
   },
   "dependencies": {
     "@fontsource/anton": "^5.3.0",

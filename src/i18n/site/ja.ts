@@ -59,6 +59,7 @@ const ja: SiteMessages = {
   'setup.map': '自分の街のヒートマップを表示',
   'setup.trim': '各ルートの始点と終点を隠す（自宅を守るため）',
   'setup.types': 'ランとして数えるもの',
+  'setup.customize': 'カスタマイズ',
   'setup.go': '自分の一年を見る',
   'setup.wait': '分析中… {pct}',
   'setup.restart': '別のファイルを使う',

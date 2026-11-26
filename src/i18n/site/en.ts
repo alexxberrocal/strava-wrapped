@@ -59,6 +59,7 @@ const en: SiteMessages = {
   'setup.map': 'Show my city heatmap',
   'setup.trim': 'Hide the start and end of each route (protects your home)',
   'setup.types': 'What counts as running',
+  'setup.customize': 'Customize',
   'setup.go': 'See my year',
   'setup.wait': 'Analysing… {pct}',
   'setup.restart': 'Use another file',
