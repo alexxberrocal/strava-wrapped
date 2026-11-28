@@ -181,12 +181,11 @@ describe('páginas estáticas de cada idioma', () => {
 <script type="module" src="./assets/index.js"></script>
 </head>
 <body>
-<span class="lang__code" id="lang-code">ES</span>
-<select><option value="es" selected>Español</option><option value="fr">Français</option></select>
+<details class="lang"><summary aria-label="Idioma" data-i18n-aria="lang.label"><span class="lang__code" id="lang-code">ES</span></summary>
+<ul><li><a data-lang="es" href="es/" lang="es" hreflang="es" aria-current="true">Español</a></li><li><a data-lang="fr" href="fr/" lang="fr" hreflang="fr">Français</a></li></ul></details>
 <h1 class="hero__title" data-i18n-html="hero.title">Tu año</h1>
 <p data-i18n="hero.lead">x</p>
 <a href="#crear"><span data-i18n="hero.cta">Crear</span> →</a>
-<select aria-label="Idioma" data-i18n-aria="lang.label"></select>
 </body>
 </html>`;
 
@@ -204,8 +203,10 @@ describe('páginas estáticas de cada idioma', () => {
     expect(fr).toContain('<em>racontée</em>');
     expect(fr).toContain('<span data-i18n="hero.cta">Créer mon bilan</span>');
     expect(fr).toContain('aria-label="Langue"');
-    expect(fr).toContain('<option value="fr" selected>');
-    expect(fr).not.toContain('<option value="es" selected>');
+    // Menú de idiomas: enlaces a la página de cada idioma y el actual marcado.
+    expect(fr).toContain('<a data-lang="fr" href="../fr/" lang="fr" hreflang="fr" aria-current="true">Français</a>');
+    expect(fr).toContain('<a data-lang="es" href="../es/" lang="es" hreflang="es">Español</a>');
+    expect(fr).not.toContain('<select');
     expect(fr).toContain('>FR</span>');
     expect(JSON.parse(/<script type="application\/ld\+json">(.*?)<\/script>/.exec(fr)![1]).url).toBe('https://ejemplo.test/fr/');
   });

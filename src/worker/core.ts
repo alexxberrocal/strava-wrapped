@@ -4,7 +4,7 @@ import { decodeFit, isFit } from '../parse/fit';
 import { decodeGpx, decodeTcx } from '../parse/gpx';
 import { summarizeTrack, type TrackSummary } from '../parse/track';
 import type { DecodedTrack } from '../parse/decoded';
-import { emptyExtras, parseChallenges, parseGoals, parsePrivacyZones, parseReactions, type Extras } from '../parse/extras';
+import { emptyExtras, parseChallenges, parseGoals, parsePrivacyZones, parseReactions, parseUnits, type Extras } from '../parse/extras';
 import { inferNumericOrder } from '../parse/dates';
 
 export interface ScanResult {
@@ -77,6 +77,7 @@ export class ParserCore {
     await optional('global_challenges.csv', (t) => (extras.challenges = parseChallenges(t, order)));
     await optional('goals.csv', (t) => (extras.goals = parseGoals(t, order)));
     await optional('privacy_zones.csv', (t) => (extras.privacyZones = parsePrivacyZones(t)));
+    await optional('general_preferences.csv', (t) => (extras.units = parseUnits(t)));
     return {
       csv,
       firstName,

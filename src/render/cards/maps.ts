@@ -3,7 +3,7 @@ import type { MultiPolygon, Position } from 'geojson';
 import { ease, prog } from '../anim';
 import { belowHero, fadeUp, headline, heroNumber, kicker, paragraph } from '../blocks';
 import type { Card, DeckEnv, Frame } from '../card';
-import { COLORS, CW, H, M, W, capRatio, cumulative, drawTracked, fitRoute, fitSize, layoutRich, projectRoutes, roundRect, setFont, tracePartial, traceFull, type Box, type Ctx } from '../kit';
+import { COLORS, CW, H, M, W, capRatio, cumulative, drawTracked, fitRoute, fitSize, frameRoutes, layoutRich, roundRect, setFont, tracePartial, traceFull, type Box, type Ctx } from '../kit';
 import { cleanName, splitLines } from './common';
 import type { CountryFeature } from '../../geo/countries';
 import type { Place } from '../../stats/types';
@@ -36,7 +36,7 @@ export function heatmapCard(env: DeckEnv): Card {
       const proj = f.memo('proj', () => {
         // Encuadre en el núcleo: las tiradas largas hacia otros pueblos no encogen la ciudad.
         const tight = n >= 15;
-        const pr = projectRoutes(home.tracks, box, { lo: tight ? 0.05 : 0.02, hi: tight ? 0.95 : 0.98, pad: 0.05 });
+        const pr = frameRoutes(home.tracks, box, tight ? 0.05 : 0.02);
         return { paths: pr.paths, cums: pr.paths.map((p) => cumulative(p)), k: pr.k };
       });
       // Dibujo progresivo con capa acumulada (las rutas terminadas se "hornean").

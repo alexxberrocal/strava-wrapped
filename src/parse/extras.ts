@@ -7,6 +7,7 @@ import { parseDateParts, partsToUtcMs, type NumericOrder } from './dates';
  *  global_challenges.csv  Join Date, Name, Completed
  *  goals.csv              Goal Type, Activity Type, Goal, Start Date, End Date, Segment ID, Time Period, …
  *  privacy_zones.csv      Address, Radius, Latitude & Longitude
+ *  general_preferences.csv  …, Measurement Preference (columna 6), …   (unidades elegidas en Strava)
  */
 
 export type GoalPeriod = 'week' | 'month' | 'year';
@@ -32,10 +33,28 @@ export interface Extras {
   challenges: { joinUtc: number; completed: boolean }[];
   goals: Goal[];
   privacyZones: PrivacyZone[];
+  /** Unidades que el atleta tiene elegidas en Strava (si el export lo dice). */
+  units: 'metric' | 'imperial' | null;
 }
 
 export function emptyExtras(): Extras {
-  return { kudosByYear: {}, challenges: [], goals: [], privacyZones: [] };
+  return { kudosByYear: {}, challenges: [], goals: [], privacyZones: [], units: null };
+}
+
+/**
+ * Unidades elegidas en Strava: columna "Measurement Preference" de general_preferences.csv
+ * ("Metric" / "Imperial"). Si la cabecera viene traducida, se mira la misma posición; el valor solo
+ * cuenta si se reconoce.
+ */
+export function parseUnits(text: string): Extras['units'] {
+  const rows = parseCsv(text);
+  if (rows.length < 2) return null;
+  let i = rows[0].findIndex((h) => /measurement|unidad|einheit|unit[eé]|misura|medida|eenhe/i.test(h));
+  if (i < 0) i = 5;
+  const v = (rows[1][i] ?? '').toLowerCase();
+  if (/imp[eé]ria|feet|pies|mil(e|la|ha)|fu[sß]/.test(v)) return 'imperial';
+  if (/m[eé]tri|meter|metro|kilom/.test(v)) return 'metric';
+  return null;
 }
 
 const truthy = (v: string | undefined) => /^(true|1|1\.0|yes|sí|si|ja|oui|vero|sim|waar)$/i.test((v ?? '').trim());

@@ -26,12 +26,19 @@ const flow = new Flow(document.getElementById('flow')!, document.getElementById(
 document.getElementById('demo-btn')?.addEventListener('click', () => void flow.playDemo(detectUnits()));
 
 // ---------------- Idioma ----------------
-const picker = document.getElementById('lang-select') as HTMLSelectElement | null;
-const pickerCode = document.getElementById('lang-code');
+// Menú propio (<details> con enlaces a la página de cada idioma): sin JavaScript navega; con él,
+// cambia el idioma sin recargar (y sin perder el archivo que ya esté cargado).
+const langMenu = document.getElementById('lang-menu') as HTMLDetailsElement | null;
+const langCode = document.getElementById('lang-code');
+const langBtn = langMenu?.querySelector<HTMLElement>('summary') ?? null;
+const langLinks = () => [...(langMenu?.querySelectorAll<HTMLAnchorElement>('a[data-lang]') ?? [])];
 
 function syncPicker(lang: Lang) {
-  if (picker) picker.value = lang;
-  if (pickerCode) pickerCode.textContent = lang.toUpperCase();
+  if (langCode) langCode.textContent = lang.toUpperCase();
+  for (const a of langLinks()) {
+    if (a.dataset.lang === lang) a.setAttribute('aria-current', 'true');
+    else a.removeAttribute('aria-current');
+  }
 }
 
 /** La URL refleja el idioma: /fr/ → /de/ en las páginas de idioma; sin ?lang= viejo que lo pise al recargar. */
@@ -42,8 +49,15 @@ function syncUrl(lang: Lang) {
   if (url.href !== location.href) history.replaceState(history.state, '', url);
 }
 
+let langToken = 0;
+
 async function useLang(lang: Lang, chosen: boolean) {
+  // Si se elige otro idioma mientras este se descarga, manda el último (antes podía quedarse el
+  // idioma anterior con el botón marcando otro).
+  const token = ++langToken;
+  syncPicker(lang);
   await loadSiteStrings(lang);
+  if (token !== langToken) return;
   setSiteLang(lang);
   applySiteLang();
   syncPicker(lang);
@@ -58,8 +72,49 @@ async function useLang(lang: Lang, chosen: boolean) {
   void flow.relocalize();
 }
 
-picker?.addEventListener('change', () => {
-  if (isLang(picker.value) && picker.value !== siteLang()) void useLang(picker.value, true);
+function closeLangMenu(focus = false) {
+  if (!langMenu?.open) return;
+  langMenu.open = false;
+  if (focus) langBtn?.focus();
+}
+
+langMenu?.addEventListener('click', (e) => {
+  const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[data-lang]');
+  if (!a) return;
+  // Con Ctrl/Cmd/Mayús (otra pestaña o ventana), el enlace hace lo suyo.
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  closeLangMenu(true);
+  const lang = a.dataset.lang;
+  if (isLang(lang) && lang !== siteLang()) void useLang(lang, true);
+  else if (isLang(lang)) syncPicker(lang);
+});
+// Al abrirlo, el foco va al idioma actual; flechas para moverse, Escape o un toque fuera para cerrar.
+langMenu?.addEventListener('toggle', () => {
+  if (langMenu.open) (langLinks().find((a) => a.getAttribute('aria-current')) ?? langLinks()[0])?.focus({ preventScroll: true });
+});
+langMenu?.addEventListener('keydown', (e) => {
+  if (!langMenu.open) return;
+  const links = langLinks();
+  const i = links.indexOf(document.activeElement as HTMLAnchorElement);
+  const step = e.key === 'ArrowDown' ? 2 : e.key === 'ArrowUp' ? -2 : e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    closeLangMenu(true);
+  } else if (e.key === 'Home' || e.key === 'End') {
+    e.preventDefault();
+    links[e.key === 'Home' ? 0 : links.length - 1]?.focus();
+  } else if (step && i >= 0) {
+    e.preventDefault();
+    links[Math.max(0, Math.min(links.length - 1, i + step))]?.focus();
+  }
+});
+document.addEventListener('pointerdown', (e) => {
+  if (langMenu?.open && !langMenu.contains(e.target as Node)) closeLangMenu();
+});
+langMenu?.addEventListener('focusout', (e) => {
+  const to = (e as FocusEvent).relatedTarget as Node | null;
+  if (to && !langMenu.contains(to)) closeLangMenu();
 });
 
 // ---------------- Demo en portada y galería ----------------

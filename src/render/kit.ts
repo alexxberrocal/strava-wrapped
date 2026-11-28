@@ -406,7 +406,7 @@ export interface Box {
  * Proyecta rutas (lat/lon) a una caja con Mercator, encuadrando de forma robusta
  * (percentiles: una salida lejana no encoge todo lo demás).
  */
-export function projectRoutes(tracks: Float32Array[], box: Box, opts: { lo?: number; hi?: number; pad?: number; minSpan?: number } = {}): { paths: Float64Array[]; k: number } {
+export function projectRoutes(tracks: Float32Array[], box: Box, opts: { lo?: number; hi?: number; pad?: number; minSpan?: number } = {}): { paths: Float64Array[]; k: number; w: number; h: number } {
   const lo = opts.lo ?? 0;
   const hi = opts.hi ?? 1;
   // Rutas que cruzan el antimeridiano (Fiyi, Chukotka…): longitudes continuas alrededor de una referencia.
@@ -425,7 +425,7 @@ export function projectRoutes(tracks: Float32Array[], box: Box, opts: { lo?: num
       ys.push(mercY(t[i]));
     }
   }
-  if (!xs.length) return { paths: [], k: 1 };
+  if (!xs.length) return { paths: [], k: 1, w: 0, h: 0 };
   xs.sort((a, b) => a - b);
   ys.sort((a, b) => a - b);
   const q = (arr: number[], p: number) => arr[Math.min(arr.length - 1, Math.max(0, Math.round(p * (arr.length - 1))))];
@@ -456,7 +456,21 @@ export function projectRoutes(tracks: Float32Array[], box: Box, opts: { lo?: num
     }
     return out;
   });
-  return { paths, k };
+  return { paths, k, w: (x1 - x0) * k, h: (y1 - y0) * k };
+}
+
+/**
+ * Encuadre para muchas rutas a la vez (mapa de calor): si una tirada larguísima en línea recta deja
+ * todo lo demás en una franja (menos del 40 % de la caja a lo alto o a lo ancho), se encuadra el
+ * núcleo donde están casi todas y esa ruta se sale del mapa.
+ */
+export function frameRoutes(tracks: Float32Array[], box: Box, lo0: number, pad = 0.05): { paths: Float64Array[]; k: number; w: number; h: number } {
+  let pr = projectRoutes(tracks, box, { lo: lo0, hi: 1 - lo0, pad });
+  for (const lo of [0.1, 0.18, 0.26]) {
+    if (lo <= lo0 || Math.min(pr.w / box.w, pr.h / box.h) >= 0.4) continue;
+    pr = projectRoutes(tracks, box, { lo, hi: 1 - lo, pad });
+  }
+  return pr;
 }
 
 /** Ajusta una sola ruta a una caja (para miniaturas). Una pista de 400 m ya llena la caja. */

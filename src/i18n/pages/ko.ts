@@ -4,7 +4,6 @@ import type { PagesContent } from './types';
 const pages: PagesContent = {
   ui: {
     updated: '최종 업데이트: {date}',
-    languages: '이 페이지의 다른 언어 버전',
   },
 
   guide: {

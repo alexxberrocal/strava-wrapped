@@ -1,7 +1,7 @@
 import { ease, prog, rng } from '../anim';
 import { fadeUp, headline, heroNumber, kicker, paragraph, pill } from '../blocks';
 import type { Card, DeckEnv, Frame } from '../card';
-import { COLORS, CW, H, M, W, capRatio, drawTracked, fitSize, layoutRich, projectRoutes, roundRect, setFont, traceFull, type Box } from '../kit';
+import { COLORS, CW, H, M, W, capRatio, drawTracked, fitSize, frameRoutes, layoutRich, roundRect, setFont, traceFull, type Box } from '../kit';
 import { localFromDoy, daysInYear } from '../../stats/time';
 import { PIZZA_KCAL, MARATHON_M } from '../../stats/equivalences';
 import type { CardKey } from '../../i18n/cards/es';
@@ -862,7 +862,7 @@ export function summaryCard(env: DeckEnv): Card {
       const art: Box = { x: 60, y: 200, w: W - 120, h: 700 };
       if (tracks.length) {
         const layer = f.layer('art', (g) => {
-          const pr = projectRoutes(tracks, art, { lo: 0.03, hi: 0.97, pad: 0.02 });
+          const pr = frameRoutes(tracks, art, 0.03, 0.02);
           g.save();
           // Las tiradas que se salen del encuadre no bajan hasta las cifras ni suben a la cabecera.
           g.beginPath();

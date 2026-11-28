@@ -60,28 +60,30 @@
         <nav class="topbar__nav">
           <a href="#como" data-i18n="nav.how">Cómo funciona</a>
           <a href="#faq" data-i18n="nav.faq">Preguntas</a>
-          <label class="lang">
-            <svg class="lang__icon" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
-              <path d="M3.5 12h17M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z" fill="none" stroke="currentColor" stroke-width="2" />
-            </svg>
-            <span class="lang__code" id="lang-code">ES</span>
-            <svg class="lang__chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
-            <select id="lang-select" aria-label="Idioma" data-i18n-aria="lang.label">
-              <option value="es" selected>Español</option>
-              <option value="ca">Català</option>
-              <option value="en">English</option>
-              <option value="fr">Français</option>
-              <option value="de">Deutsch</option>
-              <option value="it">Italiano</option>
-              <option value="pt">Português</option>
-              <option value="nl">Nederlands</option>
-              <option value="ru">Русский</option>
-              <option value="zh">中文</option>
-              <option value="ja">日本語</option>
-              <option value="ko">한국어</option>
-            </select>
-          </label>
+          <details class="lang" id="lang-menu">
+            <summary class="lang__btn" aria-label="Idioma" data-i18n-aria="lang.label">
+              <svg class="lang__icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+                <path d="M3.5 12h17M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z" fill="none" stroke="currentColor" stroke-width="2" />
+              </svg>
+              <span class="lang__code" id="lang-code">ES</span>
+              <svg class="lang__chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </summary>
+            <ul class="lang__panel">
+              <li><a data-lang="es" href="es/" lang="es" hreflang="es" aria-current="true">Español</a></li>
+              <li><a data-lang="ca" href="ca/" lang="ca" hreflang="ca">Català</a></li>
+              <li><a data-lang="en" href="en/" lang="en" hreflang="en">English</a></li>
+              <li><a data-lang="fr" href="fr/" lang="fr" hreflang="fr">Français</a></li>
+              <li><a data-lang="de" href="de/" lang="de" hreflang="de">Deutsch</a></li>
+              <li><a data-lang="it" href="it/" lang="it" hreflang="it">Italiano</a></li>
+              <li><a data-lang="pt" href="pt/" lang="pt" hreflang="pt">Português</a></li>
+              <li><a data-lang="nl" href="nl/" lang="nl" hreflang="nl">Nederlands</a></li>
+              <li><a data-lang="ru" href="ru/" lang="ru" hreflang="ru">Русский</a></li>
+              <li><a data-lang="zh" href="zh/" lang="zh" hreflang="zh-Hans">中文</a></li>
+              <li><a data-lang="ja" href="ja/" lang="ja" hreflang="ja">日本語</a></li>
+              <li><a data-lang="ko" href="ko/" lang="ko" hreflang="ko">한국어</a></li>
+            </ul>
+          </details>
         </nav>
       </div>
     </header>

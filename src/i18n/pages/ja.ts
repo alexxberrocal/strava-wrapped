@@ -3,7 +3,6 @@ import type { PagesContent } from './types';
 const pages: PagesContent = {
   ui: {
     updated: '最終更新日：{date}',
-    languages: 'このページの他の言語版',
   },
 
   guide: {

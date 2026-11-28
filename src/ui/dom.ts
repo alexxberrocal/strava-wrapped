@@ -29,7 +29,7 @@ export const ICONS = {
 };
 
 export function iconButton(icon: keyof typeof ICONS, label: string, onClick: (e: Event) => void, cls = 'icon-btn'): HTMLButtonElement {
-  return h('button', { type: 'button', class: cls, 'aria-label': label, title: label, html: ICONS[icon], onclick: onClick });
+  return h('button', { type: 'button', class: cls, 'aria-label': label, html: ICONS[icon], onclick: onClick });
 }
 
 let toastTimer: number | undefined;

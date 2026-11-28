@@ -43,7 +43,7 @@ const CHECK = String.raw`(() => {
     const cs = getComputedStyle(el);
     return cs.display !== 'none' && cs.visibility !== 'hidden' && el.getClientRects().length > 0;
   };
-  const skip = (el) => el.closest('.gallery__strip, .skip, .hero__visual, [hidden], option, select, .story__bars, .toast');
+  const skip = (el) => el.closest('.gallery__strip, .skip, .hero__visual, [hidden], .story__bars, .toast');
   const label = (el) => {
     const cls = typeof el.className === 'string' && el.className ? '.' + el.className.split(' ')[0] : '';
     const text = (el.textContent || el.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').slice(0, 34);
@@ -70,7 +70,9 @@ const CHECK = String.raw`(() => {
   }
   // 3) Botones, selector de idioma y chips en una sola línea (la píldora "Compatible con Strava"
   //    puede ir en dos líneas equilibradas a propósito).
-  for (const b of document.querySelectorAll('.btn, .lang, .chip, .linkish')) {
+  // Y nada de controles con el aspecto del sistema: ni desplegables ni globos de ayuda nativos.
+  for (const el of document.querySelectorAll('select, [title]')) if (!el.closest('svg')) issues.push('control nativo del navegador: ' + label(el));
+  for (const b of document.querySelectorAll('.btn, .lang__btn, .lang__panel a, .chip, .linkish')) {
     if (skip(b) || !visible(b)) continue;
     const walker = document.createTreeWalker(b, NodeFilter.SHOW_TEXT);
     const tops = [];
@@ -171,6 +173,16 @@ async function main() {
         // Los enlaces del pie y de la guía llevan a páginas que existen.
         const dead = (await page.evaluate(`Promise.all([...document.querySelectorAll('a[data-page]')].map((a) => fetch(a.href).then((r) => (r.ok ? null : a.getAttribute('href') + ' → ' + r.status))))`)) as (string | null)[];
         for (const d of dead) if (d) (report[`${lang} · portada · ${name}`] ??= []).push(`enlace roto: ${d}`);
+        // Menú de idiomas abierto: con nuestro estilo, dentro de la pantalla y con el idioma actual marcado.
+        await page.click('#lang-menu > summary');
+        await check(page, report, `${lang} · menú de idiomas · ${name}`, errors, `${lang}-idiomas-${name === 'móvil' ? 'movil' : 'pc'}`);
+        const menu = (await page.evaluate(`({
+          items: document.querySelectorAll('.lang__panel a').length,
+          current: document.querySelector('.lang__panel a[aria-current]')?.dataset.lang ?? '',
+          bg: getComputedStyle(document.querySelector('.lang__panel')).backgroundColor,
+        })`)) as { items: number; current: string; bg: string };
+        if (menu.items !== LANGS.length || menu.current !== lang || menu.bg !== 'rgb(18, 18, 18)') report[`${lang} · menú de idiomas · ${name}`].push(`menú de idiomas: ${JSON.stringify(menu)}`);
+        await page.keyboard.press('Escape');
         if (name === 'ordenador') {
           // Historia de ejemplo.
           await page.click('#demo-btn');
@@ -231,7 +243,9 @@ async function main() {
       // Cambio de idioma con el archivo cargado: ajustes y resultados pasan al idioma nuevo.
       const other: Lang = lang === 'en' ? 'es' : 'en';
       const d = await dict(other);
-      await page.select('#lang-select', other);
+      await page.evaluate(`document.documentElement.style.scrollBehavior = 'auto'; window.scrollTo(0, 0)`);
+      await page.click('#lang-menu > summary');
+      await page.click(`.lang__panel a[data-lang="${other}"]`);
       await page.waitForFunction(`document.documentElement.lang === '${LOCALE[other]}'`, { timeout: 20000 });
       await new Promise((r) => setTimeout(r, 1500));
       const seen = (await page.evaluate(`({
@@ -239,13 +253,20 @@ async function main() {
         customize: document.querySelector('details.options > summary')?.textContent ?? '',
         replay: document.querySelector('#results-play')?.textContent ?? '',
         path: location.pathname,
-      })`)) as { go: string; customize: string; replay: string; path: string };
+        code: document.getElementById('lang-code')?.textContent ?? '',
+        open: document.getElementById('lang-menu')?.open ?? false,
+      })`)) as { go: string; customize: string; replay: string; path: string; code: string; open: boolean };
       const key = `${lang} · cambio de idioma · móvil`;
       await check(page, report, key, errors, `${lang}-cambio-idioma-movil`);
       if (!seen.go.includes(d['setup.go'])) report[key].push(`el botón de ajustes sigue en otro idioma: «${seen.go.trim()}»`);
       if (seen.customize.trim() !== d['setup.customize']) report[key].push(`«Personalizar» sigue en otro idioma: «${seen.customize.trim()}»`);
       if (!seen.replay.includes(d['results.replay'])) report[key].push(`los resultados siguen en otro idioma: «${seen.replay.trim()}»`);
       if (!seen.path.endsWith(`/${other}/`)) report[key].push(`la dirección no cambia de idioma: ${seen.path}`);
+      if (seen.code !== other.toUpperCase() || seen.open) report[key].push(`el botón de idioma marca «${seen.code}»${seen.open ? ' y el menú sigue abierto' : ''}`);
+      // "Usar otro archivo": las pantallas del archivo anterior desaparecen.
+      await page.evaluate(`document.querySelector('.panel__actions .linkish').click()`);
+      const left = (await page.evaluate(`({ hidden: document.getElementById('results').hidden, cards: document.querySelectorAll('.results__card').length, drop: !!document.getElementById('drop') })`)) as { hidden: boolean; cards: number; drop: boolean };
+      if (!left.hidden || left.cards || !left.drop) report[key].push('al usar otro archivo siguen a la vista las pantallas del anterior');
       await page.close();
       console.log(`${lang}: ${Object.entries(report).filter(([k, v]) => k.startsWith(lang + ' ') && v.length).length ? 'con avisos' : 'ok'}`);
     }

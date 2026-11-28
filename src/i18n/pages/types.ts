@@ -51,7 +51,5 @@ export type PagesContent = Record<PageId, PageDoc> & {
   ui: {
     /** "Última actualización: {date}" */
     updated: string;
-    /** Título de la lista de idiomas al pie. */
-    languages: string;
   };
 };

@@ -138,9 +138,17 @@ export function distanceCard(env: DeckEnv): Card {
               [home.lon + Math.max(0, rel) + pad * 1.6, Math.max(home.lat, dest.lat) + pad],
             ],
           };
-          const proj = geoMercator()
-            .rotate([-(home.lon + rel / 2), 0])
-            .fitExtent([[box.x, box.y], [box.x + box.w, box.y + box.h]], extent);
+          // Destinos al otro lado del mundo o rutas pegadas a los polos (Reikiavik → Tokio pasa por el
+          // Ártico): en Mercator el encuadre se iba al infinito y no se dibujaba nada. Para esos, el
+          // mundo entero, centrado entre los dos puntos.
+          const wide = Math.abs(rel) > 110 || Math.max(home.lat, dest.lat) + pad > 78 || Math.min(home.lat, dest.lat) - pad < -78;
+          const proj = wide
+            ? geoNaturalEarth1()
+                .rotate([-(home.lon + rel / 2), 0])
+                .fitExtent([[box.x + 6, box.y + 6], [box.x + box.w - 6, box.y + box.h - 6]], { type: 'Sphere' })
+            : geoMercator()
+                .rotate([-(home.lon + rel / 2), 0])
+                .fitExtent([[box.x, box.y], [box.x + box.w, box.y + box.h]], extent);
           const interp = geoInterpolate([home.lon, home.lat], [dest.lon, dest.lat]);
           const arc: number[] = [];
           for (let i = 0; i <= 120; i++) {
@@ -148,21 +156,28 @@ export function distanceCard(env: DeckEnv): Card {
             if (p) arc.push(p[0], p[1]);
           }
           const pts = new Float64Array(arc);
-          return { proj, pts, cum: cumulative(pts) };
+          return { proj, pts, cum: cumulative(pts), wide };
         });
         const land = f.layer('land', (g) => {
           g.save();
-          roundRect(g, box.x, box.y, box.w, box.h, 28);
-          g.clip();
-          g.fillStyle = 'rgba(243,238,230,0.035)';
-          g.fillRect(box.x, box.y, box.w, box.h);
           const path = geoPath(geo.proj, g);
+          if (geo.wide) {
+            g.beginPath();
+            path({ type: 'Sphere' });
+            g.fillStyle = 'rgba(243,238,230,0.035)';
+            g.fill();
+          } else {
+            roundRect(g, box.x, box.y, box.w, box.h, 28);
+            g.clip();
+            g.fillStyle = 'rgba(243,238,230,0.035)';
+            g.fillRect(box.x, box.y, box.w, box.h);
+          }
           g.beginPath();
           for (const c of countries.features) path(c);
           g.fillStyle = 'rgba(243,238,230,0.13)';
           g.fill();
           g.strokeStyle = COLORS.ink;
-          g.lineWidth = 1.2;
+          g.lineWidth = geo.wide ? 0.6 : 1.2;
           g.stroke();
           g.restore();
         });

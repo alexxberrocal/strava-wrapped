@@ -9,7 +9,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ADS, BRAND, LEGAL_UPDATED, OWNER } from '../src/config.ts';
-import { LANGS, LANG_NAMES, LOCALE, OG_LOCALE, type Lang } from '../src/i18n/langs.ts';
+import { LANGS, LOCALE, OG_LOCALE, type Lang } from '../src/i18n/langs.ts';
 import { polishSite } from '../src/i18n/polish.ts';
 import { PAGE_IDS, PAGE_SLUG, type Block, type Cond, type PageId, type PagesContent } from '../src/i18n/pages/types.ts';
 import { es, type SiteKey, type SiteMessages } from '../src/i18n/site/es.ts';
@@ -104,7 +104,7 @@ export function applySiteConfig(html: string, cfg: SiteCfg): string {
  * Traduce el HTML. `dir` = carpeta de la página respecto a la raíz ('' para la raíz, 'en/',
  * 'en/guide/'…), para corregir las rutas relativas, la URL canónica y los enlaces entre páginas.
  */
-export function localizeHtml(html: string, lang: Lang, siteUrl: string, dir: string, cfg: SiteCfg = siteCfg(siteUrl)): string {
+export function localizeHtml(html: string, lang: Lang, siteUrl: string, dir: string, cfg: SiteCfg = siteCfg(siteUrl), slug = ''): string {
   const d = polishSite(lang, DICTS[lang]);
   const t = (k: string) => (k === 'faq.a9' && adsOn(cfg) ? d['faq.a9ads'] : d[k as SiteKey]) ?? '';
   const pageUrl = siteUrl + dir;
@@ -140,8 +140,11 @@ export function localizeHtml(html: string, lang: Lang, siteUrl: string, dir: str
   out = out.replace(/<[a-z][a-z0-9]*\b[^>]*\sdata-i18n-aria="([\w.]+)"[^>]*>/g, (tag, key: string) => tag.replace(/aria-label="[^"]*"/, `aria-label="${esc(t(key))}"`));
   // Enlaces a las páginas de texto de este idioma (guía, aviso legal…).
   out = out.replace(/(<a\b[^>]*?\sdata-page="(\w+)"[^>]*?\shref=")[^"]*(")/g, (_m, a: string, id: string, b: string) => `${a}${rel}${lang}/${PAGE_SLUG[id as PageId] ?? ''}/${b}`);
-  // El idioma marcado en el selector.
-  out = out.replace(/<option value="([a-z]{2})"( selected)?>/g, (_m, v: string) => `<option value="${v}"${v === lang ? ' selected' : ''}>`);
+  // Menú de idiomas: cada enlace lleva a esta misma página en su idioma, y el actual va marcado.
+  out = out.replace(/<a\b([^>]*?)\sdata-lang="([a-z]{2})"([^>]*)>/g, (_m, pre: string, l: string, post: string) => {
+    const attrs = `${pre}${post}`.replace(/\saria-current="[^"]*"/, '').replace(/\shref="[^"]*"/, '');
+    return `<a data-lang="${l}" href="${rel}${l}/${slug ? `${slug}/` : ''}"${attrs}${l === lang ? ' aria-current="true"' : ''}>`;
+  });
   out = out.replace(/(<span class="lang__code"[^>]*>)[^<]*(<\/span>)/, `$1${lang.toUpperCase()}$2`);
   // Rutas relativas desde la subcarpeta.
   if (rel) out = out.replace(/\s(src|href)="\.\//g, ` $1="${rel}`);
@@ -250,7 +253,7 @@ export function pageHtml(builtIndex: string, lang: Lang, id: PageId, cfg: SiteCf
   const plain = (t: string) => polished(plainText(t, cfg), lang);
   const title = `${plain(doc.title)} · ${BRAND.text}`;
   const desc = plain(doc.description);
-  let out = localizeHtml(builtIndex, lang, cfg.siteUrl, dir, cfg);
+  let out = localizeHtml(builtIndex, lang, cfg.siteUrl, dir, cfg, slug);
   const meta = (attr: 'name' | 'property', key: string, value: string) => {
     out = out.replace(new RegExp(`(<meta ${attr}="${key.replace(/[.:]/g, '\\$&')}" content=")[^"]*(")`), (_m, a: string, b: string) => a + esc(value) + b);
   };
@@ -277,7 +280,9 @@ export function pageHtml(builtIndex: string, lang: Lang, id: PageId, cfg: SiteCf
   // Saltar al contenido, logotipo a la portada y, en la barra, solo el botón de crear.
   out = out.replace(/<a class="skip"[^>]*>[\s\S]*?<\/a>/, `<a class="skip" href="#contenido">${esc(plain(doc.title))}</a>`);
   out = out.replace(/(<a class="logo" href=")[^"]*(")/, `$1${home}$2`);
-  out = out.replace(/(<nav class="topbar__nav">)[\s\S]*?(<\/nav>)/, `$1\n          ${cta.replace('btn btn--primary', 'btn btn--primary btn--small')}\n        $2`);
+  // En la barra: el botón de crear en lugar de los enlaces a las secciones de la portada; el menú de
+  // idiomas se queda (es un <details> con enlaces: funciona sin JavaScript).
+  out = out.replace(/(<nav class="topbar__nav">)\s*<a href="#como"[^>]*>[\s\S]*?<\/a>\s*<a href="#faq"[^>]*>[\s\S]*?<\/a>/, `$1\n          ${cta.replace('btn btn--primary', 'btn btn--primary btn--small')}`);
   const sections = doc.sections
     .filter((s) => on(s.when, cfg))
     .map((s) => `<section${s.id ? ` id="${s.id}"` : ''}>\n          <h2>${inline(s.h, c)}</h2>\n          ${bodyHtml(s.body, c)}\n        </section>`)
@@ -294,11 +299,6 @@ export function pageHtml(builtIndex: string, lang: Lang, id: PageId, cfg: SiteCf
       </article>${ad ? `\n      ${ad}` : ''}
     </main>`;
   out = out.replace(/<main>[\s\S]*<\/main>/, () => main);
-  // Al pie, la misma página en los otros idiomas (aquí no hay selector: no hay JavaScript).
-  const langs = `<nav class="footer__langs" aria-label="${esc(PAGES[lang].ui.languages)}">${LANGS.map((l) =>
-    l === lang ? `<span aria-current="true">${LANG_NAMES[l]}</span>` : `<a href="../../${l}/${slug}/" lang="${LOCALE[l]}" hreflang="${hreflang(l)}">${LANG_NAMES[l]}</a>`,
-  ).join('')}</nav>`;
-  out = out.replace(/(\s*)(<p class="footer__credits")/, `$1${langs}$1$2`);
   return out;
 }
 
@@ -376,12 +376,14 @@ export function headersFile(cfg: SiteCfg, inline: string[] = []): string {
     ? ["frame-ancestors 'none'", "base-uri 'self'", "object-src 'none'", 'upgrade-insecure-requests']
     : [
         "default-src 'self'",
-        `script-src 'self' https://static.cloudflareinsights.com ${inline.map(scriptHash).join(' ')}`.trim(),
+        // 'wasm-unsafe-eval': el lector de .zip descomprime con WebAssembly en los navegadores que no
+        // traen descompresión propia (no permite ejecutar texto como código).
+        `script-src 'self' 'wasm-unsafe-eval' https://static.cloudflareinsights.com ${inline.map(scriptHash).join(' ')}`.trim(),
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' blob: data:",
         "media-src 'self' blob:",
         "font-src 'self'",
-        "connect-src 'self' blob: https://cloudflareinsights.com",
+        "connect-src 'self' blob: data: https://cloudflareinsights.com",
         "worker-src 'self' blob:",
         "frame-ancestors 'none'",
         "base-uri 'self'",

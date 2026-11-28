@@ -1,5 +1,6 @@
 import { BRAND, PRIVACY_TRIM_METERS } from '../config';
 import type { ArchiveInput } from '../parse/archive';
+import { exportPath } from '../parse/exportPath';
 import type { Dataset, Pipeline } from '../app/pipeline';
 import { loadCountries } from '../geo/countries';
 import { Fmt, type Units } from '../i18n/format';
@@ -31,8 +32,6 @@ interface Built {
   painter: CardPainter;
   demo: boolean;
 }
-
-const RELEVANT = /^(activities\.csv|profile\.csv|activities\/|media\/)/i;
 
 /** Controla todo el recorrido: archivo → progreso → ajustes → historia → resultados. */
 export class Flow {
@@ -77,9 +76,8 @@ export class Flow {
     folderBtn?.addEventListener('click', () => folderInput?.click());
     folderInput?.addEventListener('change', () => {
       const files = [...(folderInput.files ?? [])]
-        .map((file) => ({ path: (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name, file }))
-        .filter((x) => RELEVANT.test(stripRoot(x.path)) || /activities\.csv$/i.test(x.path))
-        .map((x) => ({ path: stripRoot(x.path), file: x.file }));
+        .map((file) => ({ path: exportPath((file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name), file }))
+        .filter((x): x is { path: string; file: File } => x.path != null);
       if (files.length) void this.start({ kind: 'files', files });
       folderInput.value = '';
     });
@@ -137,7 +135,8 @@ export class Flow {
     this.settings = {
       year,
       name: athleteName(ds.firstName ?? ''),
-      units: this.getUnits(),
+      // Las unidades que la persona tiene puestas en Strava; si el archivo no lo dice, las de su región.
+      units: ds.scan.extras.units ?? this.getUnits(),
       cityMap: true,
       trim: true,
       runTypes: this.pipeline.defaultRunTypes(),
@@ -221,7 +220,7 @@ export class Flow {
       });
       yearChips.append(chip);
     }
-    const nameInput = h('input', { class: 'input', type: 'text', maxlength: 18, value: s.name, autocomplete: 'given-name', 'aria-label': tr('setup.name') }) as HTMLInputElement;
+    const nameInput = h('input', { class: 'input', type: 'text', maxlength: 18, value: s.name, autocomplete: 'off', autocapitalize: 'words', spellcheck: 'false', enterkeyhint: 'done', 'aria-label': tr('setup.name') }) as HTMLInputElement;
     nameInput.addEventListener('input', () => (s.name = athleteName(nameInput.value)));
 
     const unitChips = h('div', { class: 'chips', role: 'group' });
@@ -486,6 +485,10 @@ export class Flow {
     this.settings = null;
     this.yearData = null;
     this.building = null;
+    // Con otro archivo (o al empezar de nuevo) no pueden quedar a la vista las pantallas del anterior.
+    this.built = null;
+    this.resultsEl.hidden = true;
+    this.resultsEl.querySelector('#results-grid')?.replaceChildren();
   }
 
   resetToDrop() {
@@ -500,16 +503,6 @@ export class Flow {
   debugState() {
     return { dataset: this.dataset, settings: this.settings, yearRuns: this.yearData?.runs.length ?? null, cards: this.built?.cards.map((c) => c.id) ?? null, building: !!this.building };
   }
-}
-
-function stripRoot(path: string): string {
-  const p = path.replace(/\\/g, '/');
-  const i = p.toLowerCase().indexOf('activities.csv');
-  if (i > 0 && !p.toLowerCase().includes('activities/')) return p.slice(i);
-  const parts = p.split('/');
-  // "export_123/activities/1.fit.gz" -> "activities/1.fit.gz"
-  const k = parts.findIndex((x) => /^(activities|media)$/i.test(x) || /^(activities|profile)\.csv$/i.test(x));
-  return k > 0 ? parts.slice(k).join('/') : p;
 }
 
 async function inputFromDataTransfer(dt: DataTransfer): Promise<ArchiveInput | null> {
@@ -529,8 +522,8 @@ async function inputFromDataTransfer(dt: DataTransfer): Promise<ArchiveInput | n
 async function walk(entry: FileSystemEntry, prefix: string, out: { path: string; file: File }[]): Promise<void> {
   const path = prefix ? `${prefix}/${entry.name}` : entry.name;
   if (entry.isFile) {
-    const rel = stripRoot(path);
-    if (!RELEVANT.test(rel)) return;
+    const rel = exportPath(path);
+    if (rel == null) return;
     const file = await new Promise<File>((res, rej) => (entry as FileSystemFileEntry).file(res, rej));
     out.push({ path: rel, file });
     return;

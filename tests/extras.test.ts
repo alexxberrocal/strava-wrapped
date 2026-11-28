@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { parseChallenges, parseGoals, parsePrivacyZones, parseReactions } from '../src/parse/extras';
+import { parseChallenges, parseGoals, parsePrivacyZones, parseReactions, parseUnits } from '../src/parse/extras';
+import { exportPath } from '../src/parse/exportPath';
 import { Cities } from '../src/geo/cities';
 import { trimTrack } from '../src/stats/compute';
 import { splitLines } from '../src/render/cards/common';
@@ -15,6 +16,26 @@ describe('extras del export', () => {
       '"Nov 8, 2026, 7:51:20 PM",Like,Comment,4',
     ].join('\n');
     expect(parseReactions(csv, 'MDY')).toEqual({ 2023: 1, 2026: 2 });
+  });
+
+  it('unidades elegidas en Strava', () => {
+    const head = 'Date of Birth,Weight,Functional Threshold Power,Maximum Heartrate,Athlete Type,Measurement Preference,Date Preference';
+    expect(parseUnits([head, '1990-01-01,70,,,Runner,Metric,mm/dd/YYYY'].join('\n'))).toBe('metric');
+    expect(parseUnits([head, '1990-01-01,70,,,Runner,Imperial,mm/dd/YYYY'].join('\n'))).toBe('imperial');
+    // Cabecera traducida: misma posición, y solo si el valor se reconoce.
+    expect(parseUnits(['a,b,c,d,e,f,g', '1,2,3,4,5,Imperial,7'].join('\n'))).toBe('imperial');
+    expect(parseUnits(['a,b,c,d,e,f,g', '1,2,3,4,5,otra cosa,7'].join('\n'))).toBeNull();
+    expect(parseUnits(head)).toBeNull();
+  });
+
+  it('carpeta descomprimida: solo los ficheros que se usan, sin la carpeta de fuera', () => {
+    expect(exportPath('export_123/activities/456.fit.gz')).toBe('activities/456.fit.gz');
+    expect(exportPath('export_123\\activities.csv')).toBe('activities.csv');
+    expect(exportPath('privacy_zones.csv')).toBe('privacy_zones.csv');
+    expect(exportPath('export_123/general_preferences.csv')).toBe('general_preferences.csv');
+    expect(exportPath('media/foto.jpg')).toBe('media/foto.jpg');
+    expect(exportPath('export_123/clubs.csv')).toBeNull();
+    expect(exportPath('export_123/activities')).toBeNull();
   });
 
   it('retos completados', () => {
