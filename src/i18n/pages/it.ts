@@ -178,7 +178,7 @@ const pages: PagesContent = {
       {
         h: 'Titolare del sito',
         body: [
-          'Ai sensi dell’articolo 10 della legge spagnola 34/2002 sui servizi della società dell’informazione e sul commercio elettronico:',
+          { when: 'nif', text: 'Ai sensi dell’articolo 10 della legge spagnola 34/2002 sui servizi della società dell’informazione e sul commercio elettronico:' },
           '- **Titolare:** {owner}',
           { when: 'nif', text: '- **Codice fiscale (NIF):** {nif}' },
           { when: 'address', text: '- **Indirizzo:** {address}' },

@@ -183,7 +183,7 @@ const pages: PagesContent = {
       {
         h: 'Titular de la web',
         body: [
-          'En cumplimiento del artículo 10 de la Ley 34/2002, de servicios de la sociedad de la información y de comercio electrónico:',
+          { when: 'nif', text: 'En cumplimiento del artículo 10 de la Ley 34/2002, de servicios de la sociedad de la información y de comercio electrónico:' },
           '- **Titular:** {owner}',
           { when: 'nif', text: '- **NIF:** {nif}' },
           { when: 'address', text: '- **Domicilio:** {address}' },

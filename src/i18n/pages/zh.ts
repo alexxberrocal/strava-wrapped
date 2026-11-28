@@ -178,7 +178,7 @@ const pages: PagesContent = {
       {
         h: '网站所有者',
         body: [
-          '根据西班牙关于信息社会服务和电子商务的第 34/2002 号法律第 10 条：',
+          { when: 'nif', text: '根据西班牙关于信息社会服务和电子商务的第 34/2002 号法律第 10 条：' },
           '- **所有者：**{owner}',
           { when: 'nif', text: '- **税号（NIF）：**{nif}' },
           { when: 'address', text: '- **地址：**{address}' },

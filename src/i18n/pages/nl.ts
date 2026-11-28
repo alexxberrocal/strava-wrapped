@@ -178,7 +178,7 @@ const pages: PagesContent = {
       {
         h: 'Eigenaar van de website',
         body: [
-          'Op grond van artikel 10 van de Spaanse wet 34/2002 inzake diensten van de informatiemaatschappij en elektronische handel:',
+          { when: 'nif', text: 'Op grond van artikel 10 van de Spaanse wet 34/2002 inzake diensten van de informatiemaatschappij en elektronische handel:' },
           '- **Eigenaar:** {owner}',
           { when: 'nif', text: '- **Fiscaal nummer (NIF):** {nif}' },
           { when: 'address', text: '- **Adres:** {address}' },

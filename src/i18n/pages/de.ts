@@ -178,7 +178,7 @@ const pages: PagesContent = {
       {
         h: 'Betreiber der Website',
         body: [
-          'Gemäß Artikel 10 des spanischen Gesetzes 34/2002 über Dienste der Informationsgesellschaft und den elektronischen Geschäftsverkehr:',
+          { when: 'nif', text: 'Gemäß Artikel 10 des spanischen Gesetzes 34/2002 über Dienste der Informationsgesellschaft und den elektronischen Geschäftsverkehr:' },
           '- **Betreiber:** {owner}',
           { when: 'nif', text: '- **Steuernummer (NIF):** {nif}' },
           { when: 'address', text: '- **Anschrift:** {address}' },

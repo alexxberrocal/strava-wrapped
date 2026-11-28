@@ -178,7 +178,7 @@ const pages: PagesContent = {
       {
         h: 'Website owner',
         body: [
-          'In compliance with article 10 of Spanish Law 34/2002 on information society services and electronic commerce:',
+          { when: 'nif', text: 'In compliance with article 10 of Spanish Law 34/2002 on information society services and electronic commerce:' },
           '- **Owner:** {owner}',
           { when: 'nif', text: '- **Tax ID (NIF):** {nif}' },
           { when: 'address', text: '- **Address:** {address}' },
