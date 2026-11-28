@@ -50,6 +50,8 @@ function syncUrl(lang: Lang) {
 }
 
 let langToken = 0;
+/** Último cambio de idioma que llegó a aplicarse (si no coincide con langToken, hay uno en curso). */
+let langApplied = 0;
 
 async function useLang(lang: Lang, chosen: boolean) {
   // Si se elige otro idioma mientras este se descarga, manda el último (antes podía quedarse el
@@ -58,6 +60,7 @@ async function useLang(lang: Lang, chosen: boolean) {
   syncPicker(lang);
   await loadSiteStrings(lang);
   if (token !== langToken) return;
+  langApplied = token;
   setSiteLang(lang);
   applySiteLang();
   syncPicker(lang);
@@ -86,8 +89,8 @@ langMenu?.addEventListener('click', (e) => {
   e.preventDefault();
   closeLangMenu(true);
   const lang = a.dataset.lang;
-  if (isLang(lang) && lang !== siteLang()) void useLang(lang, true);
-  else if (isLang(lang)) syncPicker(lang);
+  // También si se vuelve a elegir el actual mientras otro se descarga: manda la última pulsación.
+  if (isLang(lang) && (lang !== siteLang() || langToken !== langApplied)) void useLang(lang, true);
 });
 // Al abrirlo, el foco va al idioma actual; flechas para moverse, Escape o un toque fuera para cerrar.
 langMenu?.addEventListener('toggle', () => {
