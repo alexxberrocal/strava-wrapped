@@ -9,6 +9,7 @@ import { projectRoutes } from '../src/render/kit';
 import { buildDeck, cardSkipReason } from '../src/render/deck';
 import { Fmt } from '../src/i18n/format';
 import { habitTitle, marathonsLabel, yearDelta } from '../src/render/cards/common';
+import { athleteName } from '../src/stats/names';
 import type { CsvActivity } from '../src/parse/activitiesCsv';
 import type { Activity, WrappedStats } from '../src/stats/types';
 import type { DeckEnv } from '../src/render/card';
@@ -108,6 +109,15 @@ describe('textos', () => {
     expect(marathonsLabel(new Fmt('es', 'metric'), 1.4)).toBe('1,4 maratones');
     expect(marathonsLabel(new Fmt('en', 'metric'), 53)).toBe('53 marathons');
   });
+  it('nombre del atleta: sin emojis y con tope de letras', () => {
+    expect(athleteName('  Laura \u{1F338}\u{1F3C3}‍♀️ ')).toBe('Laura');
+    expect(athleteName('Juan Carlos de la Santísima Trinidad')).toBe('Juan Carlos');
+    expect(athleteName('Maximiliano Alejandro')).toBe('Maximiliano');
+    expect(athleteName('Wolfeschlegelsteinhausenbergerdorff')).toBe('Wolfeschlegelstein');
+    expect(athleteName('Àlex')).toBe('Àlex');
+    expect([...athleteName('陈'.repeat(30))].length).toBe(18);
+    expect(athleteName('')).toBe('');
+  });
   it('el perfil horario no repite el título del perfil runner', () => {
     const es = new Fmt('es', 'metric');
     expect(habitTitle(es, 'dawn')).toEqual(['ALMA', 'MADRUGADORA']);
@@ -131,8 +141,16 @@ function runAct(i: number, opts: Partial<CsvActivity> = {}): Activity {
   return { id: c.id, csv: c, category: 'run', startUtc: c.startUtc, offsetMin: 60, tz: null, local: localTimeOf(c.startUtc, 60), track: null, country: null, city: null, indoor: true };
 }
 
-function statsOf(runs: Activity[]): WrappedStats {
-  return computeStats({ year: 2026, name: 'Ana', lang: 'es', runs, others: [], prev: null, periodEnd: localTimeOf(Date.UTC(2026, 10, 24), 60), trimMeters: 250 });
+function statsOf(runs: Activity[], others: Activity[] = []): WrappedStats {
+  return computeStats({ year: 2026, name: 'Ana', lang: 'es', runs, others, prev: null, periodEnd: localTimeOf(Date.UTC(2026, 10, 24), 60), trimMeters: 250 });
+}
+
+/** `n` sesiones de otro deporte, de `hours` horas cada una. */
+function otherActs(typeRaw: string, category: Activity['category'], n: number, hours: number): Activity[] {
+  return Array.from({ length: n }, (_, i) => {
+    const a = runAct(100 + i, { typeRaw, category, moving: hours * 3600, elapsed: hours * 3600, distance: 0 });
+    return { ...a, id: `${typeRaw}${i}`, category };
+  });
 }
 
 const envOf = (s: WrappedStats): DeckEnv => ({ fmt: new Fmt('es', 'metric'), stats: s, countries: null, photos: [], brand: 'MY RUN YEAR', domain: 'myrunyear.com' });
@@ -152,6 +170,22 @@ describe('pantallas inteligentes', () => {
   it('zapatillas de verdad: sí', () => {
     const env = envOf(statsOf(Array.from({ length: 40 }, (_, i) => runAct(i, { gear: i % 2 ? 'Pegasus' : 'Clifton' }))));
     expect(cardSkipReason('shoes', env)).toBeNull();
+  });
+  it('otros deportes: hacen falta al menos dos practicados de verdad', () => {
+    const runs = Array.from({ length: 40 }, (_, i) => runAct(i));
+    const ride = otherActs('Ride', 'ride', 60, 2);
+    // Un solo deporte más, por mucho que sea: no.
+    expect(cardSkipReason('others', envOf(statsOf(runs, ride)))).not.toBeNull();
+    // Un deporte y una clase suelta de yoga: tampoco.
+    expect(cardSkipReason('others', envOf(statsOf(runs, [...ride, ...otherActs('Yoga', 'yoga', 1, 1)])))).not.toBeNull();
+    // Dos deportes con varias sesiones: sí.
+    expect(cardSkipReason('others', envOf(statsOf(runs, [...ride, ...otherActs('Swim', 'swim', 6, 0.75)])))).toBeNull();
+  });
+  it('con pocas carreras no salen el anillo de días ni el perfil runner', () => {
+    const few = envOf(statsOf(Array.from({ length: 6 }, (_, i) => runAct(i))));
+    expect(cardSkipReason('time', few)).not.toBeNull();
+    expect(cardSkipReason('archetype', few)).not.toBeNull();
+    expect(cardSkipReason('time', envOf(statsOf(Array.from({ length: 12 }, (_, i) => runAct(i)))))).toBeNull();
   });
   it('cinta sin GPS ni desnivel: sin mapas ni montañas', () => {
     const env = envOf(statsOf(Array.from({ length: 60 }, (_, i) => runAct(i))));

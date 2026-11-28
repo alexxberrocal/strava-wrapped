@@ -735,8 +735,9 @@ export function heartCard(env: DeckEnv): Card {
   const { fmt, stats: s } = env;
   const hr = s.hr!;
   const big = fmt.big(hr.beats);
-  // Las zonas solo tienen sentido con datos segundo a segundo (no con las medias del CSV).
-  const zonesOk = hr.zones.length === 5 && hr.zoneSeconds >= 1800;
+  // Las zonas solo tienen sentido con datos segundo a segundo (no con las medias del CSV) y con
+  // horas suficientes: salen del pulso máximo registrado, y en tres carreras ese máximo no es fiable.
+  const zonesOk = hr.zones.length === 5 && hr.zoneSeconds >= 5 * 3600;
   const totalZ = hr.zoneSeconds || 1;
   const dominant = zonesOk ? hr.zones.reduce((bi, z, i, arr) => (z.seconds > arr[bi].seconds ? i : bi), 0) : -1;
   const maxOk = Number.isFinite(hr.max) && hr.max > hr.avg;

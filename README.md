@@ -36,7 +36,9 @@ compartir en Instagram (imagen o vídeo).
 | Web: portada, flujo, visor tipo stories, compartir (PNG, MP4, zip) | `src/ui/`, `index.html` |
 | Atleta de demostración (datos inventados) | `src/demo/` |
 | Textos de la web y de las tarjetas en 12 idiomas | `src/i18n/site/`, `src/i18n/cards/` |
-| Páginas de cada idioma, sitemap, robots y 404 (al compilar) | `scripts/site-pages.ts` |
+| Páginas de texto (guía, cómo se calcula, sobre el proyecto, aviso legal, privacidad) en 12 idiomas | `src/i18n/pages/` |
+| Portadas y páginas de texto de cada idioma, sitemap, robots, 404, licencias y cabeceras de seguridad (al compilar) | `scripts/site-pages.ts` |
+| Marca, titular del aviso legal y publicidad | `src/config.ts` |
 
 Detalles del export que conviene saber (comprobados con exports reales):
 
@@ -56,6 +58,7 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
+- `http://localhost:5173/es/guide/` (y el resto de páginas de texto) se generan al vuelo.
 - `http://localhost:5173/dev.html` muestra todas las tarjetas con la demo
   (`?card=distance&t=1200`, `?lang=ru&units=imperial`, `?play`, casos extremos con
   `?case=ultra|tiny|nogps|longname|partial|down`).
@@ -77,54 +80,59 @@ npm run dev          # http://localhost:5173
 
 ## Publicar la web
 
-Es una web estática: el resultado de `npm run build` (carpeta `dist/`) se puede subir a
-cualquier hosting. Cada `git push` a `main` pasa los tests y genera el build en GitHub Actions.
+Es una web estática: el resultado de `npm run build` (carpeta `dist/`) se puede subir a cualquier
+alojamiento. Cada `git push` a `main` pasa los tests y genera el build en GitHub Actions.
 
-### Opción A · GitHub Pages (gratis, ya preparado)
+### Recomendado · Cloudflare Pages + dominio propio
 
-1. En GitHub: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-2. **Settings → Secrets and variables → Actions → Variables → New variable**:
-   `DEPLOY_PAGES` = `true`.
-3. Haz un push (o lanza el workflow a mano). Quedará en
-   `https://alexxberrocal.github.io/strava-wrapped/`.
+1. Compra **myrunyear.com** en Cloudflare Registrar (a precio de coste).
+2. En Cloudflare: **Workers & Pages → Create → Pages → Connect to Git**, elige este repositorio,
+   **Build command** `npm run build`, **Output directory** `dist`. Se publica solo con cada push.
+3. En el proyecto de Pages: **Custom domains → myrunyear.com**. El HTTPS es automático.
+4. **Email → Email Routing**: crea `hola@myrunyear.com` y redirígelo a tu correo (es el contacto
+   que aparece en el aviso legal; no enseña tu dirección personal).
+5. **Web Analytics**: actívalo para el proyecto (mide visitas sin cookies).
 
-La URL pública (enlaces al compartir, vista previa y sitemap) se fija al compilar con
-`VITE_SITE_URL`: en GitHub Actions es la variable `SITE_URL` del repositorio o, si no existe, la
-de GitHub Pages.
+El build ya genera lo que Cloudflare Pages necesita: `_headers` (política de seguridad y caché),
+`sitemap.xml`, `robots.txt`, `404.html`, `licenses.txt` y `.well-known/security.txt`. El repositorio
+puede ser privado: Cloudflare lo lee igual.
 
-### Opción B · Vercel, Netlify o Cloudflare Pages (gratis)
+La URL pública (enlaces al compartir, vista previa y sitemap) es `https://myrunyear.com/`; para
+publicar en otra dirección, define `VITE_SITE_URL` al compilar.
 
-Importa el repositorio desde su web con **Build command** `npm run build` y
-**Output directory** `dist`. Se vuelve a publicar solo en cada push.
+### Alternativa · GitHub Pages
 
-### Dominio propio
-
-1. Cómpralo (unos 10–15 €/año) en Cloudflare Registrar, Porkbun o Namecheap. **Evita la
-   palabra "strava"** en el dominio (es su marca).
-2. Añádelo en el hosting (GitHub Pages: *Settings → Pages → Custom domain*; Vercel/Netlify:
-   *Domains*) y crea en tu proveedor el registro DNS que te indiquen (normalmente un `CNAME`).
-   El HTTPS es automático.
-3. Cambia `BRAND.domain` en `src/config.ts` (marca de agua de las imágenes y vídeos) y crea la
-   variable `SITE_URL` del repositorio (por ejemplo `https://runrecap.app/`).
+El workflow lo publica si la variable `DEPLOY_PAGES` del repositorio vale `true` y Pages usa
+«GitHub Actions». Ojo: GitHub Pages no aplica las cabeceras de `_headers` y, en el plan gratuito,
+exige que el repositorio sea público.
 
 ## Personalizar
 
-- Nombre y dominio: `src/config.ts`.
+- Nombre, dominio, titular y publicidad: `src/config.ts`.
 - Colores: `src/render/kit.ts` (tarjetas) y `src/styles/main.css` (web).
-- Textos: `src/i18n/site/<idioma>.ts` (web) y `src/i18n/cards/<idioma>.ts` (tarjetas). El
-  español define las claves; los tests comprueban que los 12 idiomas las tengan todas, con las
-  mismas variables.
+- Textos: `src/i18n/site/<idioma>.ts` (web), `src/i18n/cards/<idioma>.ts` (tarjetas) y
+  `src/i18n/pages/<idioma>.ts` (páginas de texto). El español define las claves y la estructura;
+  los tests comprueban que los 12 idiomas las tengan todas, con las mismas variables.
 
-## Monetizar sin molestar (ideas, de menos a más intrusivo)
+## Publicidad (preparada y apagada)
 
-1. **Botón de apoyo** (Ko-fi, Buy Me a Coffee) en la pantalla de resultados.
-2. **Enlaces de afiliado** útiles: por ejemplo, en la tarjeta de zapatillas, "¿repetirías?"
-   con enlace al modelo (Amazon Afiliados, tiendas de running).
-3. **Patrocinio** de una marca o carrera popular (una pantalla patrocinada, con su logo).
-4. **Anuncios** (Google AdSense, EthicalAds…) solo en la portada, nunca en la historia ni en
-   las imágenes. Hoy la web **no usa cookies ni rastreadores**, así que no necesita banner de
-   cookies; con anuncios o analítica de terceros harán falta aviso de cookies y política de
-   privacidad (RGPD).
+La web se financia solo con publicidad, siempre **fuera de la historia y de las imágenes**: en la
+portada, bajo los resultados y al final de las páginas de contenido. Está apagada mientras
+`ADS.client` (en `src/config.ts`) esté vacío: sin anuncios, sin cookies y con los textos legales
+diciendo eso mismo.
+
+Para activarla:
+
+1. Rellena `OWNER.nif` y `OWNER.address`: con ingresos, el aviso legal tiene que llevarlos (art. 10
+   de la LSSI). Sin ellos el build falla.
+2. Pon en `ADS.client` el identificador de AdSense (`ca-pub-…`). Con eso se carga el script de
+   AdSense en todas las páginas, se publica `ads.txt`, aparece «Preferencias de privacidad» en el
+   pie y la política de privacidad, el aviso legal y la pregunta sobre cookies pasan a su versión
+   con publicidad.
+3. En AdSense, **Privacidad y mensajes**: crea el mensaje de consentimiento para Europa con el
+   botón de rechazar en la primera pantalla (lo exige la AEPD).
+4. Cuando Google apruebe la web, crea los bloques de anuncios y pon sus identificadores en
+   `ADS.slots` (`home`, `results`, `page`).
 
 ## Aviso legal
 
@@ -133,5 +141,7 @@ Importa el repositorio desde su web con **Build command** `npm run build` y
   archivo; no se usan su logotipo ni su nombre en la marca.
 - La web no usa la API de Strava: cada persona usa **su propio archivo de datos**, que Strava
   entrega a cualquier usuario (derecho de portabilidad del RGPD).
+- Aviso legal, privacidad y cookies de la web: `src/i18n/pages/` (se publican en `/es/legal/` y
+  `/es/privacy/`, y en los otros 11 idiomas).
 - Código: © Àlex Berrocal, todos los derechos reservados (ver `LICENSE`). Componentes de
-  terceros: `THIRD_PARTY_NOTICES.md`.
+  terceros: `THIRD_PARTY_NOTICES.md` (y `licenses.txt` en la web publicada).

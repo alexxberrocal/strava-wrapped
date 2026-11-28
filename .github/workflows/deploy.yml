@@ -6,10 +6,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Por defecto, solo lectura: los permisos para publicar se dan únicamente al trabajo que publica.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -30,18 +29,23 @@ jobs:
       - run: npm run build
         env:
           # URL pública (enlaces al compartir y vista previa en WhatsApp/redes): la variable SITE_URL
-          # del repositorio si hay dominio propio; si no, la de GitHub Pages.
-          VITE_SITE_URL: ${{ vars.SITE_URL || format('https://{0}.github.io/{1}/', github.repository_owner, github.event.repository.name) }}
+          # del repositorio si existe; si se publica en GitHub Pages, su dirección; si no, el dominio.
+          VITE_SITE_URL: ${{ vars.SITE_URL || (vars.DEPLOY_PAGES == 'true' && format('https://{0}.github.io/{1}/', github.repository_owner, github.event.repository.name)) || 'https://myrunyear.com/' }}
       - uses: actions/upload-pages-artifact@v3
+        if: vars.DEPLOY_PAGES == 'true'
         with:
           path: dist
 
-  # Publica en GitHub Pages solo si la variable del repositorio DEPLOY_PAGES vale "true"
+  # La web se publica con Cloudflare Pages (lee el repositorio y compila por su cuenta). Este trabajo
+  # queda como alternativa: publica en GitHub Pages solo si la variable DEPLOY_PAGES vale "true"
   # (Settings → Secrets and variables → Actions → Variables) y Pages usa "GitHub Actions".
   deploy:
     if: github.event_name != 'pull_request' && vars.DEPLOY_PAGES == 'true'
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

@@ -8,6 +8,7 @@ import { localTimeOf } from '../stats/time';
 import type { Activity, WrappedStats } from '../stats/types';
 import type { Extras } from '../parse/extras';
 import { computeStats } from '../stats/compute';
+import { athleteName } from '../stats/names';
 
 /**
  * Lógica pura del paso "CSV + rutas -> actividades con hora local, país y ciudad".
@@ -184,7 +185,7 @@ export function wrappedStats(ctx: WrappedContext, year: number, runs: Activity[]
   }
   return computeStats({
     year,
-    name: opts.name,
+    name: athleteName(opts.name),
     gearLifetime,
     lang: opts.lang,
     runs,

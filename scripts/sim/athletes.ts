@@ -601,6 +601,12 @@ export function catalog(n: number, seed0 = 1): Spec[] {
   special('bajon-80', (s) => Object.assign(s, { prevFactor: 5 }));
   special('subidon-x30', (s) => Object.assign(s, { prevFactor: 0.03 }));
   special('sin-nombre', (s) => Object.assign(s, { name: '' }));
+  // Nombres del perfil de Strava tal cual vienen: larguísimos, con emojis o en otra escritura.
+  special('nombre-larguisimo', (s) => Object.assign(s, { name: 'Juan Carlos de la Santísima Trinidad' }));
+  special('nombre-sin-espacios', (s) => Object.assign(s, { name: 'Wolfeschlegelsteinhausenbergerdorff' }));
+  special('nombre-emoji', (s) => Object.assign(s, { name: 'Laura 🌸🏃‍♀️' }));
+  special('nombre-arabe', (s) => Object.assign(s, { name: 'محمد' }));
+  special('nombre-una-letra', (s) => Object.assign(s, { name: 'J' }));
   special('distancia-cero', (s) => Object.assign(s, { zeroDistShare: 0.5 }));
   special('muchos-deportes', (s) => Object.assign(s, { othersPerWeek: 6, otherTypes: OTHER_TYPES[s.lang] }));
   special('bicis-como-carrera', (s) => Object.assign(s, { bikesAsRuns: 6 }));
@@ -624,6 +630,13 @@ export function catalog(n: number, seed0 = 1): Spec[] {
   special('objetivo-raro', (s) => Object.assign(s, { goal: { kind: 'week', meters: 12345 } }));
   special('objetivo-anual-cumplido', (s) => Object.assign(s, { goal: { kind: 'year', meters: 100000 }, runsPerWeek: 5 }));
   special('mucho-kudo', (s) => Object.assign(s, { kudos: 123456, challenges: 200 }));
+  // Pocas carreras al año: cada pantalla que salga tiene que decir algo (ver cardSkipReason).
+  for (const [n, perWeek] of [[3, 0.07], [5, 0.11], [8, 0.17], [12, 0.26], [20, 0.42]] as const) {
+    special(`pocas-${n}`, (s) => Object.assign(s, { runsPerWeek: perWeek, season: 'flat', weekendOnly: false, outdoorShare: 1, hr: 'stream', gear: 'one', distKm: 7, distSd: 2, longRunKm: 12, paceSecKm: 345, zeroDistShare: 0, bikesAsRuns: 0, glitchGps: false, names: 'default', elev: 'rolling', othersPerWeek: 0.2, otherTypes: ['Bicicleta'] }));
+  }
+  // Un solo deporte más, aunque sea mucho: sin pantalla de "otros deportes". Y dos de verdad: con ella.
+  special('un-deporte-mas', (s) => Object.assign(s, { othersPerWeek: 3, otherTypes: s.lang === 'es' ? ['Bicicleta'] : ['Ride'], runsPerWeek: 3 }));
+  special('dos-deportes-mas', (s) => Object.assign(s, { othersPerWeek: 3, otherTypes: s.lang === 'es' ? ['Bicicleta', 'Natación'] : ['Ride', 'Swim'], runsPerWeek: 3 }));
 
   for (let i = 0; i < n; i++) {
     const seed = seed0 * 100003 + i;

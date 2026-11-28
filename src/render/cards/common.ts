@@ -2,13 +2,7 @@ import type { Fmt } from '../../i18n/format';
 import type { CardKey } from '../../i18n/cards/es';
 import type { RunRef, HabitKey, ArchetypeKey } from '../../stats/types';
 
-/** Quita emojis y símbolos raros de los nombres de actividad (la tipografía no los tiene). */
-export function cleanName(s: string): string {
-  return s
-    .replace(/[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u{FE0F}\u{200D}]/gu, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-}
+export { cleanName } from '../../stats/names';
 
 /** Parte un texto en como mucho `maxLines` líneas equilibradas (sin dejar una palabra suelta). */
 export function splitLines(text: string, maxLines: number, maxChars: number): string[] {

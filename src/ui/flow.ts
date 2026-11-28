@@ -7,6 +7,7 @@ import { applySiteLang, pctLabel, siteLang, tr } from '../i18n/site';
 import { CardPainter, type Card, type DeckEnv } from '../render/card';
 import { buildDeck } from '../render/deck';
 import { ensureCardAssets, preloadDeckText } from '../render/fonts';
+import { athleteName } from '../stats/names';
 import type { Activity, WrappedStats } from '../stats/types';
 import { fillAds } from './ads';
 import { downloadBlob, h, slug, toast } from './dom';
@@ -135,7 +136,7 @@ export class Flow {
     const year = ds.defaultYear ?? new Date().getFullYear();
     this.settings = {
       year,
-      name: ds.firstName ?? '',
+      name: athleteName(ds.firstName ?? ''),
       units: this.getUnits(),
       cityMap: true,
       trim: true,
@@ -221,7 +222,7 @@ export class Flow {
       yearChips.append(chip);
     }
     const nameInput = h('input', { class: 'input', type: 'text', maxlength: 18, value: s.name, autocomplete: 'given-name', 'aria-label': tr('setup.name') }) as HTMLInputElement;
-    nameInput.addEventListener('input', () => (s.name = nameInput.value.trim()));
+    nameInput.addEventListener('input', () => (s.name = athleteName(nameInput.value)));
 
     const unitChips = h('div', { class: 'chips', role: 'group' });
     for (const u of ['metric', 'imperial'] as Units[]) {
@@ -412,7 +413,34 @@ export class Flow {
     });
   }
 
-  private showResults() {
+  /**
+   * Cambio de idioma con un archivo ya cargado: los ajustes y las pantallas pasan al idioma nuevo
+   * (se quedaban en el anterior hasta volver a empezar).
+   */
+  async relocalize() {
+    if (this.settings && this.dataset && this.flowEl.querySelector('.panel__actions')) {
+      const open = !!this.optionsEl?.open;
+      this.renderSetup();
+      if (this.optionsEl) this.optionsEl.open = open;
+      if (this.yearData) {
+        this.renderSummaryLine();
+        this.setGo(this.yearData.runs.length > 0, 1);
+      }
+    }
+    if (this.built && !this.built.demo && !this.resultsEl.hidden) {
+      try {
+        const built = await this.build();
+        if (built) {
+          this.built = built;
+          this.showResults(false);
+        }
+      } catch (err) {
+        console.warn(err);
+      }
+    }
+  }
+
+  private showResults(scroll = true) {
     const b = this.built;
     if (!b) return;
     this.resultsEl.hidden = false;
@@ -428,7 +456,7 @@ export class Flow {
       requestAnimationFrame(() => paintThumb(b.painter, card, canvas, Math.max(170, btn.clientWidth || 190)));
     });
     requestAnimationFrame(() => {
-      this.resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (scroll) this.resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
       fillAds(this.resultsEl);
     });
   }

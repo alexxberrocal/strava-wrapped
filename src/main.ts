@@ -54,6 +54,8 @@ async function useLang(lang: Lang, chosen: boolean) {
   // Titulares de la web en cirílico/CJK con su tipografía (Anton solo tiene alfabeto latino).
   void ensureScriptFonts('', lang);
   void refreshDemo();
+  // Con un archivo ya cargado, sus ajustes y sus pantallas también cambian de idioma.
+  void flow.relocalize();
 }
 
 picker?.addEventListener('change', () => {

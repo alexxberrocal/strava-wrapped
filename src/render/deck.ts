@@ -28,7 +28,8 @@ export function cardSkipReason(id: CardId, env: DeckEnv, opts: DeckOptions = { c
     case 'distance':
       return km >= 1 ? null : 'menos de 1 km';
     case 'time':
-      return s.runs >= 3 && s.moving >= 1800 ? null : 'pocas carreras o menos de 30 min';
+      // El anillo de días del año con cuatro rayas (un 1 % de los días) no dice nada.
+      return s.activeDays >= 10 && s.moving >= 3600 ? null : 'menos de 10 días corriendo';
     case 'calendar':
       return s.activeDays >= 10 ? null : 'menos de 10 días corriendo';
     case 'months':
@@ -46,7 +47,8 @@ export function cardSkipReason(id: CardId, env: DeckEnv, opts: DeckOptions = { c
     case 'countries':
       return hasMapData(env) && s.gpsRuns >= 3 && (s.countries.length > 1 || s.cities.length > 1) ? null : 'un solo sitio';
     case 'allruns':
-      return s.routes.length >= 6 ? null : 'menos de 6 rutas';
+      // Con menos de 8 formas la cuadrícula queda medio vacía.
+      return s.routes.length >= 8 ? null : 'menos de 8 rutas';
     case 'habits':
       return s.runs >= 8 ? null : 'menos de 8 carreras';
     case 'heart':

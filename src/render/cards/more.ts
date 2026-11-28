@@ -840,7 +840,7 @@ export function summaryCard(env: DeckEnv): Card {
   ];
   // Cada dato solo si dice algo (nada de "0 m de desnivel" en la cinta).
   const extra: [string, string, string][] = [];
-  if (s.elevation >= 100) extra.push([fmt.elev(s.elevation), fmt.upper(fmt.elevUnit), up('sum.elevation')]);
+  if (s.elevation >= 300) extra.push([fmt.elev(s.elevation), fmt.upper(fmt.elevUnit), up('sum.elevation')]);
   const best = s.efforts.find((e) => e.target === 10000) ?? s.efforts.find((e) => e.target === 5000);
   if (best && s.runs >= 3) extra.push([fmt.dur(best.time), '', up('sum.best', { effort: effortLabel(fmt, best.target) })]);
   if (s.activeDays >= 2) extra.push([fmt.num(s.activeDays), '', up('sum.days')]);
@@ -848,6 +848,10 @@ export function summaryCard(env: DeckEnv): Card {
   if (s.longestStreak.days >= 3) extra.push([fmt.num(s.longestStreak.days), '', up('sum.streak')]);
   if (s.longestRun && s.runs >= 2) extra.push([fmt.dist(s.longestRun.distance), fmt.upper(fmt.distUnit), up('sum.longest')]);
   cells.push(...extra.slice(0, 3));
+  // Siempre en parejas: una celda suelta deja un hueco en la última fila.
+  if (cells.length % 2) cells.pop();
+  // El perfil runner solo se nombra si hay carreras para sostenerlo (como su pantalla).
+  const showProfile = s.runs >= 8;
   const tracks = s.home?.tracks ?? [];
   return {
     id: 'summary',
@@ -934,7 +938,7 @@ export function summaryCard(env: DeckEnv): Card {
           drawTracked(ctx, l, x, vb + 46, fmt.cased ? (3 * ls) / 23 : 0);
         });
       });
-      pill(f, fmt.upper(fmt.m(`arch.${s.archetype.key}.pill` as CardKey)), M, 1640, { bg: COLORS.orange, fg: COLORS.ink, size: 30, start: 1500 });
+      if (showProfile) pill(f, fmt.upper(fmt.m(`arch.${s.archetype.key}.pill` as CardKey)), M, 1640, { bg: COLORS.orange, fg: COLORS.ink, size: 30, start: 1500 });
       // Llamada a hacerse el suyo (encima de la marca de agua con el dominio).
       fadeUp(f, 1900, () => {
         setFont(ctx, 'text', 24, 800);

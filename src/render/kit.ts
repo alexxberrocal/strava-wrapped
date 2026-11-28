@@ -406,7 +406,7 @@ export interface Box {
  * Proyecta rutas (lat/lon) a una caja con Mercator, encuadrando de forma robusta
  * (percentiles: una salida lejana no encoge todo lo demás).
  */
-export function projectRoutes(tracks: Float32Array[], box: Box, opts: { lo?: number; hi?: number; pad?: number } = {}): { paths: Float64Array[]; k: number } {
+export function projectRoutes(tracks: Float32Array[], box: Box, opts: { lo?: number; hi?: number; pad?: number; minSpan?: number } = {}): { paths: Float64Array[]; k: number } {
   const lo = opts.lo ?? 0;
   const hi = opts.hi ?? 1;
   // Rutas que cruzan el antimeridiano (Fiyi, Chukotka…): longitudes continuas alrededor de una referencia.
@@ -431,7 +431,8 @@ export function projectRoutes(tracks: Float32Array[], box: Box, opts: { lo?: num
   const q = (arr: number[], p: number) => arr[Math.min(arr.length - 1, Math.max(0, Math.round(p * (arr.length - 1))))];
   let x0 = q(xs, lo), x1 = q(xs, hi), y0 = q(ys, lo), y1 = q(ys, hi);
   const pad = opts.pad ?? 0.04;
-  const minSpan = 0.004;
+  // Encuadre mínimo (en grados): que el temblor del GPS de alguien parado no llene la caja.
+  const minSpan = opts.minSpan ?? 0.004;
   if (x1 - x0 < minSpan) {
     const c = (x0 + x1) / 2;
     x0 = c - minSpan / 2;
@@ -458,9 +459,9 @@ export function projectRoutes(tracks: Float32Array[], box: Box, opts: { lo?: num
   return { paths, k };
 }
 
-/** Ajusta una sola ruta a una caja (para miniaturas). */
+/** Ajusta una sola ruta a una caja (para miniaturas). Una pista de 400 m ya llena la caja. */
 export function fitRoute(t: Float32Array, box: Box, pad = 0.08): Float64Array {
-  return projectRoutes([t], box, { pad }).paths[0];
+  return projectRoutes([t], box, { pad, minSpan: 0.0016 }).paths[0];
 }
 
 // ---------------- Textura ----------------

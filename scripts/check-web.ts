@@ -5,14 +5,19 @@
 //   - botones, píldoras y chips en una sola línea,
 //   - la barra superior no se pisa,
 //   - sin errores de JavaScript.
-// Además recorre el flujo completo con el export de prueba en el móvil: subir → ajustes → historia →
-// resultados → compartir, y la historia de ejemplo en el ordenador. Capturas en samples/web-check/.
+// Además recorre el flujo completo con el export de prueba en el móvil: subir → ajustes (también con
+// las opciones cambiadas: millas, sin mapa, sin recorte) → historia → resultados → compartir → cambio
+// de idioma a mitad; la historia de ejemplo en el ordenador; y las páginas de texto de cada idioma
+// (guía, cómo se calcula, sobre el proyecto, aviso legal, privacidad) en móvil y en ordenador.
+// Todo se sirve con las cabeceras de seguridad del build (dist/_headers): si la política de seguridad
+// bloquea algo, sale como error. Capturas en samples/web-check/.
 // Uso: npm run check:web   (opciones: --only=es,ru  --zip=samples/otro.zip  --no-flow  --shots=all|issues)
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import puppeteer, { type Browser, type Page } from 'puppeteer-core';
 import { preview } from 'vite';
-import { LANGS } from '../src/i18n/langs.ts';
+import { LANGS, LOCALE, type Lang } from '../src/i18n/langs.ts';
+import { PAGE_IDS, PAGE_SLUG } from '../src/i18n/pages/types.ts';
 
 const root = resolve(import.meta.dirname, '..');
 const args = Object.fromEntries(
@@ -110,6 +115,26 @@ async function newPage(browser: Browser, view: typeof MOBILE, errors: string[]):
   return page;
 }
 
+/** Cabeceras del build (bloque "/*" de dist/_headers), para servir la web como en producción. */
+function buildHeaders(): Record<string, string> {
+  const file = join(root, 'dist/_headers');
+  const out: Record<string, string> = {};
+  if (!existsSync(file)) return out;
+  const block = readFileSync(file, 'utf8').split(/\n\s*\n/)[0];
+  for (const line of block.split('\n').slice(1)) {
+    const m = /^\s+([\w-]+):\s*(.+)$/.exec(line);
+    // En local se sirve por http: sin "upgrade-insecure-requests" (pasaría las peticiones a https).
+    if (m) out[m[1]] = m[2].replace(/;?\s*upgrade-insecure-requests/, '');
+  }
+  return out;
+}
+
+/** Textos de la web en un idioma (para comprobar que el cambio de idioma llega a todo). */
+async function dict(lang: Lang): Promise<Record<string, string>> {
+  const mod = (await import(`../src/i18n/site/${lang}.ts`)) as { default?: Record<string, string>; es?: Record<string, string> };
+  return (mod.default ?? mod.es)!;
+}
+
 async function main() {
   const exe = [
     process.env.CHROME_PATH,
@@ -124,7 +149,9 @@ async function main() {
   rmSync(outDir, { recursive: true, force: true });
   mkdirSync(outDir, { recursive: true });
 
-  const server = await preview({ root, logLevel: 'silent', preview: { port: 4399, strictPort: false, host: '127.0.0.1', open: false } });
+  const headers = buildHeaders();
+  if (!headers['Content-Security-Policy']) throw new Error('Falta dist/_headers con la política de seguridad: npm run build');
+  const server = await preview({ root, logLevel: 'silent', preview: { port: 4399, strictPort: false, host: '127.0.0.1', open: false, headers } });
   const base = server.resolvedUrls?.local[0] ?? 'http://127.0.0.1:4399/';
   const browser = await puppeteer.launch({ executablePath: exe, headless: true, args: ['--no-first-run', '--no-default-browser-check', '--lang=es-ES'] });
   const report: Report = {};
@@ -141,12 +168,22 @@ async function main() {
         await page.goto(`${base}${lang}/`, { waitUntil: 'networkidle0' });
         await page.evaluate(`document.querySelectorAll('.faq details').forEach((d) => (d.open = true))`);
         await check(page, report, `${lang} · portada · ${name}`, errors, `${lang}-portada-${name === 'móvil' ? 'movil' : 'pc'}`);
+        // Los enlaces del pie y de la guía llevan a páginas que existen.
+        const dead = (await page.evaluate(`Promise.all([...document.querySelectorAll('a[data-page]')].map((a) => fetch(a.href).then((r) => (r.ok ? null : a.getAttribute('href') + ' → ' + r.status))))`)) as (string | null)[];
+        for (const d of dead) if (d) (report[`${lang} · portada · ${name}`] ??= []).push(`enlace roto: ${d}`);
         if (name === 'ordenador') {
           // Historia de ejemplo.
           await page.click('#demo-btn');
           await page.waitForSelector('.story', { visible: true, timeout: 20000 });
           await new Promise((r) => setTimeout(r, 1200));
           await check(page, report, `${lang} · historia de ejemplo · ${name}`, errors, `${lang}-demo-pc`);
+        }
+        // Páginas de texto de este idioma.
+        for (const id of PAGE_IDS) {
+          await page.goto(`${base}${lang}/${PAGE_SLUG[id]}/`, { waitUntil: 'networkidle0' });
+          await check(page, report, `${lang} · ${id} · ${name}`, errors, `${lang}-${id}-${name === 'móvil' ? 'movil' : 'pc'}`);
+          const htmlLang = (await page.evaluate('document.documentElement.lang')) as string;
+          if (htmlLang !== LOCALE[lang]) report[`${lang} · ${id} · ${name}`].push(`idioma de la página: ${htmlLang}`);
         }
         await page.close();
       }
@@ -174,6 +211,41 @@ async function main() {
       await page.waitForSelector('.sheet', { visible: true, timeout: 20000 });
       await new Promise((r) => setTimeout(r, 1500));
       await check(page, report, `${lang} · compartir · móvil`, errors, `${lang}-compartir-movil`);
+      await page.keyboard.press('Escape');
+      // Otra vez, con las opciones cambiadas: millas, sin mapa de la ciudad y sin recortar las rutas.
+      const before = (await page.evaluate(`document.querySelectorAll('.results__card').length`)) as number;
+      await page.evaluate(`(() => {
+        const fields = document.querySelectorAll('details.options .setup > .field');
+        fields[1].querySelectorAll('.chip')[1].click();
+        fields[2].querySelectorAll('input').forEach((i) => i.click());
+      })()`);
+      await page.evaluate(`document.querySelector('.panel__actions .btn--primary').click()`);
+      await page.waitForSelector('.story', { visible: true, timeout: 30000 });
+      await new Promise((r) => setTimeout(r, 1200));
+      await check(page, report, `${lang} · historia en millas · móvil`, errors, `${lang}-historia-millas-movil`);
+      await page.click('.story__actions .btn--ghost');
+      await page.waitForFunction(`!document.querySelector('.story')`, { timeout: 20000 });
+      const after = (await page.evaluate(`document.querySelectorAll('.results__card').length`)) as number;
+      // Sin el mapa de la ciudad tiene que haber, como mucho, una pantalla menos.
+      if (after > before || after < before - 1) (report[`${lang} · historia en millas · móvil`] ??= []).push(`pantallas: ${before} → ${after} al quitar el mapa`);
+      // Cambio de idioma con el archivo cargado: ajustes y resultados pasan al idioma nuevo.
+      const other: Lang = lang === 'en' ? 'es' : 'en';
+      const d = await dict(other);
+      await page.select('#lang-select', other);
+      await page.waitForFunction(`document.documentElement.lang === '${LOCALE[other]}'`, { timeout: 20000 });
+      await new Promise((r) => setTimeout(r, 1500));
+      const seen = (await page.evaluate(`({
+        go: document.querySelector('.panel__actions .btn--primary')?.textContent ?? '',
+        customize: document.querySelector('details.options > summary')?.textContent ?? '',
+        replay: document.querySelector('#results-play')?.textContent ?? '',
+        path: location.pathname,
+      })`)) as { go: string; customize: string; replay: string; path: string };
+      const key = `${lang} · cambio de idioma · móvil`;
+      await check(page, report, key, errors, `${lang}-cambio-idioma-movil`);
+      if (!seen.go.includes(d['setup.go'])) report[key].push(`el botón de ajustes sigue en otro idioma: «${seen.go.trim()}»`);
+      if (seen.customize.trim() !== d['setup.customize']) report[key].push(`«Personalizar» sigue en otro idioma: «${seen.customize.trim()}»`);
+      if (!seen.replay.includes(d['results.replay'])) report[key].push(`los resultados siguen en otro idioma: «${seen.replay.trim()}»`);
+      if (!seen.path.endsWith(`/${other}/`)) report[key].push(`la dirección no cambia de idioma: ${seen.path}`);
       await page.close();
       console.log(`${lang}: ${Object.entries(report).filter(([k, v]) => k.startsWith(lang + ' ') && v.length).length ? 'con avisos' : 'ok'}`);
     }
