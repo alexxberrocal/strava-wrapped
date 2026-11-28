@@ -10,8 +10,9 @@ on:
 permissions:
   contents: read
 
+# Una ejecución por rama: una nueva en la misma rama cancela la anterior, pero no las de otras.
 concurrency:
-  group: pages
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
