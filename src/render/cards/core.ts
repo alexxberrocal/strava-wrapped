@@ -212,8 +212,14 @@ export function distanceCard(env: DeckEnv): Card {
           ctx.arc(ex, ey, 26 * pEnd, 0, Math.PI * 2);
           ctx.stroke();
           ctx.restore();
-          labelAt(f, fmt.upper(homeName!), geo.pts[0], geo.pts[1], COLORS.paper, pMap, box);
-          labelAt(f, fmt.upper(dest.name), ex, ey, COLORS.orange, pEnd, box);
+          // Cada nombre hacia fuera (el de casa, al lado contrario del destino): así no se pisan.
+          const destRight = ex >= geo.pts[0];
+          const hp = labelPos(f, fmt.upper(homeName!), geo.pts[0], geo.pts[1], box, destRight ? 'left' : 'right');
+          const dp = labelPos(f, fmt.upper(dest.name), ex, ey, box, destRight ? 'right' : 'left');
+          // Si aun así coinciden (puntos muy juntos en un mapa del mundo), el de casa sube una línea.
+          if (hp.left < dp.left + dp.w + 14 && dp.left < hp.left + hp.w + 14 && Math.abs(hp.ty - dp.ty) < 30) hp.ty -= 40 * Math.sign(dp.ty - hp.ty || 1);
+          drawLabel(f, fmt.upper(homeName!), hp, COLORS.paper, pMap);
+          drawLabel(f, fmt.upper(dest.name), dp, COLORS.orange, pEnd);
         }
       } else if (countries) {
         // Sin destino: el mundo entero y tus kilómetros dándole la vuelta por el ecuador.
@@ -328,21 +334,36 @@ export function distanceCard(env: DeckEnv): Card {
   };
 }
 
-function labelAt(f: Frame, text: string, x: number, y: number, color: string, alpha: number, box?: Box) {
+interface LabelPos {
+  left: number;
+  ty: number;
+  w: number;
+}
+
+/** Sitio de una etiqueta junto a su punto: al lado pedido si cabe; si no, al otro; siempre dentro del mapa. */
+function labelPos(f: Frame, text: string, x: number, y: number, box: Box, prefer: 'left' | 'right'): LabelPos {
+  const { ctx } = f;
+  setFont(ctx, 'text', 24, 800);
+  const w = trackedWidth(ctx, text, 3);
+  const minX = box.x + 18, maxX = box.x + box.w - 18;
+  const right = x + 36, leftSide = x - 36 - w;
+  const fits = prefer === 'right' ? right + w <= maxX : leftSide >= minX;
+  if (fits) return { left: prefer === 'right' ? right : leftSide, ty: y + 8, w };
+  // No cabe hacia fuera: debajo del punto (o encima, si no hay sitio), centrada y dentro del mapa.
+  // Hacia dentro pisaría la línea del recorrido.
+  const left = Math.max(minX, Math.min(maxX - w, x - w / 2));
+  const below = y + 62;
+  return { left, ty: below <= box.y + box.h - 14 ? below : y - 40, w };
+}
+
+function drawLabel(f: Frame, text: string, pos: LabelPos, color: string, alpha: number) {
   if (alpha <= 0) return;
   const { ctx } = f;
   ctx.save();
   ctx.globalAlpha *= alpha;
   setFont(ctx, 'text', 24, 800);
   ctx.fillStyle = color;
-  const w = trackedWidth(ctx, text, 3);
-  const minX = (box?.x ?? M) + 18, maxX = (box ? box.x + box.w : W - M) - 18;
-  // A la derecha del punto si cabe; si no, a la izquierda; y siempre dentro del mapa.
-  let left = x + 36;
-  if (left + w > maxX) left = x - 36 - w;
-  left = Math.max(minX, Math.min(maxX - w, left));
-  const ty = y + 8 + (left < x && left + w > x - 20 ? 40 : 0);
-  drawTracked(ctx, text, left, ty, 3, 'left');
+  drawTracked(ctx, text, pos.left, pos.ty, 3, 'left');
   ctx.restore();
 }
 
