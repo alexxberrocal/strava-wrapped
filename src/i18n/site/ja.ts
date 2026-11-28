@@ -1,7 +1,7 @@
 import type { SiteMessages } from './es';
 
 const ja: SiteMessages = {
-  'meta.title': 'RUNRECAP · あなたのランニングイヤーをストーリーに',
+  'meta.title': 'My Run Year · あなたのランニングイヤーをストーリーに',
   'nav.how': '使い方',
   'nav.faq': 'よくある質問',
   'hero.kicker': 'あなたの年間ランニングまとめ',
@@ -97,7 +97,7 @@ const ja: SiteMessages = {
   'lang.label': '言語',
   'hero.compat': 'Strava 対応 · 独立プロジェクト',
   'faq.q8': 'Strava の公式アプリですか？',
-  'faq.a8': 'いいえ。RUNRECAP は独立したプロジェクトです。Strava からダウンロードできるデータアーカイブを読み込むので Strava に対応していますが、パスワードを使ったり、アカウントに接続したりすることはありません。',
+  'faq.a8': 'いいえ。My Run Year は独立したプロジェクトです。Strava からダウンロードできるデータアーカイブを読み込むので Strava に対応していますが、パスワードを使ったり、アカウントに接続したりすることはありません。',
   'faq.q9': 'Cookie やアクセス解析を使っていますか？',
   'faq.a9': 'いいえ。トラッキング Cookie もアクセス解析もなく、データが端末の外に出ることもありません。ブラウザに保存するのは、選んだ言語だけです。',
   'share.textFull': '私のランニングイヤー 🏃 あなたも {url} で作ってみよう',

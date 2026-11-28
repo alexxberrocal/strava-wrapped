@@ -164,7 +164,7 @@ describe('páginas estáticas de cada idioma', () => {
   const html = `<!doctype html>
 <html lang="es">
 <head>
-<title>RUNRECAP · Tu año corriendo, en una historia</title>
+<title>My Run Year · Tu año corriendo, en una historia</title>
 <meta name="description" content="x" />
 <link rel="canonical" href="https://ejemplo.test/" />
 <link rel="icon" href="./favicon.svg" />
@@ -193,7 +193,7 @@ describe('páginas estáticas de cada idioma', () => {
   it('francés en /fr/', () => {
     const fr = localizeHtml(html, 'fr', 'https://ejemplo.test/', 'fr/');
     expect(fr).toContain('<html lang="fr-FR"');
-    expect(fr).toContain('<title>RUNRECAP · Ton année de course, en une story</title>');
+    expect(fr).toContain('<title>My Run Year · Ton année de course, en une story</title>');
     expect(fr).toContain('<meta property="og:url" content="https://ejemplo.test/fr/" />');
     expect(fr).toContain('<meta property="og:image" content="https://ejemplo.test/og-fr.jpg" />');
     expect(fr).toContain('<meta property="og:locale" content="fr_FR" />');

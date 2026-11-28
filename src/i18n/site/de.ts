@@ -1,7 +1,7 @@
 import type { SiteMessages } from './es';
 
 const de: SiteMessages = {
-  'meta.title': 'RUNRECAP · Dein Laufjahr als Story',
+  'meta.title': 'My Run Year · Dein Laufjahr als Story',
   'nav.how': 'So funktioniert’s',
   'nav.faq': 'Fragen',
   'hero.kicker': 'Dein Lauf-Jahresrückblick',
@@ -97,7 +97,7 @@ const de: SiteMessages = {
   'lang.label': 'Sprache',
   'hero.compat': 'Kompatibel mit Strava · Unabhängiges Projekt',
   'faq.q8': 'Ist das eine offizielle Strava-App?',
-  'faq.a8': 'Nein. RUNRECAP ist ein unabhängiges Projekt: kompatibel mit Strava, weil es das Datenarchiv liest, das Strava dich herunterladen lässt – aber es nutzt nie dein Passwort und verbindet sich nicht mit deinem Konto.',
+  'faq.a8': 'Nein. My Run Year ist ein unabhängiges Projekt: kompatibel mit Strava, weil es das Datenarchiv liest, das Strava dich herunterladen lässt – aber es nutzt nie dein Passwort und verbindet sich nicht mit deinem Konto.',
   'faq.q9': 'Nutzt ihr Cookies oder Analytics?',
   'faq.a9': 'Nein. Keine Tracking-Cookies, keine Analytics, und deine Daten verlassen nie dein Gerät. Wir merken uns nur in deinem Browser die Sprache, die du wählst.',
   'share.textFull': 'Mein Laufjahr 🏃 Erstell deins auf {url}',

@@ -1,6 +1,6 @@
 # Componentes de terceros
 
-RUNRECAP usa estos componentes, cada uno con su licencia:
+My Run Year usa estos componentes, cada uno con su licencia:
 
 | Componente | Uso | Licencia |
 | --- | --- | --- |
@@ -17,5 +17,5 @@ RUNRECAP usa estos componentes, cada uno con su licencia:
 | [tz-lookup](https://github.com/darkskyapp/tz-lookup) | Zona horaria a partir de coordenadas | CC0 1.0 |
 | [Mediabunny](https://github.com/Vanilagy/mediabunny) | Crear vídeos MP4 en el navegador | MPL-2.0 (se usa sin modificar) |
 
-Strava es una marca registrada de Strava, Inc. RUNRECAP es un proyecto independiente y no está
+Strava es una marca registrada de Strava, Inc. My Run Year es un proyecto independiente y no está
 afiliado, patrocinado ni respaldado por Strava, Inc.

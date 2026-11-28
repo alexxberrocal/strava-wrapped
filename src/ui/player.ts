@@ -1,5 +1,6 @@
 import type { Card, CardPainter } from '../render/card';
 import { THEMES, W } from '../render/kit';
+import { BRAND } from '../config';
 import { tr } from '../i18n/site';
 import { ICONS, h, iconButton } from './dom';
 
@@ -65,7 +66,7 @@ export class StoryPlayer {
     const stage = h('div', { class: 'story__stage' }, this.frame, actions);
     this.root = h(
       'div',
-      { class: 'story', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'RUNRECAP' },
+      { class: 'story', role: 'dialog', 'aria-modal': 'true', 'aria-label': BRAND.text },
       stage,
       iconButton('prev', tr('story.prev'), () => this.go(this.index - 1), 'story__nav story__nav--prev'),
       iconButton('next', tr('story.next'), () => this.tap(1), 'story__nav story__nav--next'),

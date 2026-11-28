@@ -1,9 +1,9 @@
-# RUNRECAP · Tu año corriendo, en una historia
+# My Run Year · Tu año corriendo, en una historia
 
-![RUNRECAP](public/og-es.jpg)
+![My Run Year](public/og-es.jpg)
 
-Web para crear tu **resumen anual de running** (estilo *Wrapped*) a partir del archivo que te
-da Strava. Kilómetros, horas, desnivel, rachas, mejores marcas, pulsaciones, zapatillas, países,
+Web ([myrunyear.com](https://myrunyear.com/)) para crear tu **resumen anual de running** a partir del
+archivo que te da Strava. Kilómetros, horas, desnivel, rachas, mejores marcas, pulsaciones, zapatillas, países,
 mapa de calor de tu ciudad, tu perfil runner… en hasta 20 pantallas animadas listas para
 compartir en Instagram (imagen o vídeo).
 

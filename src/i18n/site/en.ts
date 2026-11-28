@@ -1,7 +1,7 @@
 import type { SiteMessages } from './es';
 
 const en: SiteMessages = {
-  'meta.title': 'RUNRECAP · Your running year, as a story',
+  'meta.title': 'My Run Year · Your running year, as a story',
   'nav.how': 'How it works',
   'nav.faq': 'FAQ',
   'hero.kicker': 'Your yearly running recap',
@@ -97,7 +97,7 @@ const en: SiteMessages = {
   'lang.label': 'Language',
   'hero.compat': 'Compatible with Strava · Independent project',
   'faq.q8': 'Is this an official Strava app?',
-  'faq.a8': 'No. RUNRECAP is an independent project: it’s compatible with Strava because it reads the data archive Strava lets you download, but it never uses your password or connects to your account.',
+  'faq.a8': 'No. My Run Year is an independent project: it’s compatible with Strava because it reads the data archive Strava lets you download, but it never uses your password or connects to your account.',
   'faq.q9': 'Do you use cookies or analytics?',
   'faq.a9': 'No. There are no tracking cookies or analytics, and your data never leaves your device. We only remember the language you pick, in your browser.',
   'share.textFull': 'My year in running 🏃 Make yours at {url}',

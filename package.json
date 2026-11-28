@@ -1,5 +1,5 @@
 {
-  "name": "runrecap",
+  "name": "myrunyear",
   "private": true,
   "version": "1.0.0",
   "description": "Tu año corriendo, en una historia. Wrapped para runners a partir del export de Strava (100% en el navegador).",

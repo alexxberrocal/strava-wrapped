@@ -102,7 +102,7 @@ for (const [pi, spec] of specs.entries()) {
     }
     checkStats(pid, stats);
     const photos = stats.photos.length >= 3 ? fakePhotos(Math.min(5, stats.photos.length)) : [];
-    const env: DeckEnv = { fmt: new Fmt(lang, spec.units), stats, countries, photos: photos as unknown as ImageBitmap[], brand: 'RUNRECAP', domain: 'runrecap.app' };
+    const env: DeckEnv = { fmt: new Fmt(lang, spec.units), stats, countries, photos: photos as unknown as ImageBitmap[], brand: 'MY RUN YEAR', domain: 'myrunyear.com' };
     const warns: string[] = [];
     const origWarn = console.warn;
     console.warn = (...a: unknown[]) => warns.push(a.map(String).join(' '));

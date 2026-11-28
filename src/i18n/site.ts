@@ -82,7 +82,7 @@ export function applySiteLang(root: ParentNode = document) {
   guardAccents(root);
 }
 
-const STORE_KEY = 'runrecap.lang';
+const STORE_KEY = 'myrunyear.lang';
 
 /** Carpeta de idioma de la página (/en/, /fr/…), si la hay. */
 export function pathLang(pathname = location.pathname): Lang | null {

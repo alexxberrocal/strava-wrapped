@@ -94,7 +94,7 @@ export function notFound(siteUrl: string): string {
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex" />
-<title>404 · RUNRECAP</title>
+<title>404 · My Run Year</title>
 <link rel="icon" type="image/svg+xml" href="${siteUrl}favicon.svg" />
 <style>
   :root { color-scheme: light; }

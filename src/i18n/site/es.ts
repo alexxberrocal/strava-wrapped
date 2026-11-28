@@ -1,6 +1,6 @@
 /** Textos de la web en español (idioma de referencia: define las llaves). */
 export const es = {
-  'meta.title': 'RUNRECAP · Tu año corriendo, en una historia',
+  'meta.title': 'My Run Year · Tu año corriendo, en una historia',
   'nav.how': 'Cómo funciona',
   'nav.faq': 'Preguntas',
   'hero.kicker': 'Tu resumen runner del año',
@@ -96,7 +96,7 @@ export const es = {
   'lang.label': 'Idioma',
   'hero.compat': 'Compatible con Strava · Proyecto independiente',
   'faq.q8': '¿Es una app oficial de Strava?',
-  'faq.a8': 'No. RUNRECAP es un proyecto independiente: es compatible con Strava porque lee el archivo de datos que Strava te deja descargar, pero no usa tu contraseña ni se conecta a tu cuenta.',
+  'faq.a8': 'No. My Run Year es un proyecto independiente: es compatible con Strava porque lee el archivo de datos que Strava te deja descargar, pero no usa tu contraseña ni se conecta a tu cuenta.',
   'faq.q9': '¿Usáis cookies o analítica?',
   'faq.a9': 'No. No hay cookies de seguimiento ni analítica, y tus datos nunca salen de tu dispositivo. Solo recordamos en tu navegador el idioma que eliges.',
   'share.textFull': 'Mi año corriendo 🏃 Hazte el tuyo en {url}',

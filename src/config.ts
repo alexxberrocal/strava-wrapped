@@ -1,14 +1,18 @@
-// Configuración de marca y despliegue. Cambia aquí el nombre y el dominio de la web.
+// Configuración de marca y despliegue. Cambia aquí el nombre, el dominio y los datos del titular.
 import type { Lang } from './i18n/langs';
 
 /** URL pública de la web con barra final. La fija el build (VITE_SITE_URL, ver vite.config.ts). */
-const SITE_URL = ((import.meta.env?.VITE_SITE_URL as string | undefined) || 'https://runrecap.app/').replace(/\/?$/, '/');
+const SITE_URL = ((import.meta.env?.VITE_SITE_URL as string | undefined) || 'https://myrunyear.com/').replace(/\/?$/, '/');
 
 export const BRAND = {
-  /** Nombre que aparece en la web y en las tarjetas. */
-  name: 'RUNRECAP',
+  /** Logotipo: así sale en la cabecera de la web y en las tarjetas. */
+  name: 'MY RUN YEAR',
+  /** El nombre dentro de una frase, en títulos de página y al compartir. */
+  text: 'My Run Year',
+  /** Para nombres de archivo y claves guardadas en el navegador. */
+  slug: 'myrunyear',
   /** Dominio que se imprime como marca de agua en las imágenes y vídeos compartidos. */
-  domain: 'runrecap.app',
+  domain: 'myrunyear.com',
   /** Dirección pública de la web (enlaces al compartir y vista previa en WhatsApp y redes). */
   siteUrl: SITE_URL,
   /**

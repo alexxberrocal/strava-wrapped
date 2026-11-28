@@ -1,7 +1,7 @@
 import type { SiteMessages } from './es';
 
 const nl: SiteMessages = {
-  'meta.title': 'RUNRECAP · Jouw hardloopjaar, als verhaal',
+  'meta.title': 'My Run Year · Jouw hardloopjaar, als verhaal',
   'nav.how': 'Hoe het werkt',
   'nav.faq': 'Vragen',
   'hero.kicker': 'Jouw hardloopjaar in een terugblik',
@@ -97,7 +97,7 @@ const nl: SiteMessages = {
   'lang.label': 'Taal',
   'hero.compat': 'Compatibel met Strava · Onafhankelijk project',
   'faq.q8': 'Is dit een officiële Strava-app?',
-  'faq.a8': 'Nee. RUNRECAP is een onafhankelijk project: het is compatibel met Strava omdat het het gegevensarchief leest dat je bij Strava kunt downloaden, maar het gebruikt nooit je wachtwoord en maakt geen verbinding met je account.',
+  'faq.a8': 'Nee. My Run Year is een onafhankelijk project: het is compatibel met Strava omdat het het gegevensarchief leest dat je bij Strava kunt downloaden, maar het gebruikt nooit je wachtwoord en maakt geen verbinding met je account.',
   'faq.q9': 'Gebruiken jullie cookies of analytics?',
   'faq.a9': 'Nee. Geen trackingcookies of analytics, en je gegevens verlaten nooit je apparaat. We onthouden alleen, in je browser, de taal die je kiest.',
   'share.textFull': 'Mijn hardloopjaar 🏃 Maak het jouwe op {url}',

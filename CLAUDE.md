@@ -1,4 +1,4 @@
-# RUNRECAP — Wrapped de Strava para runners
+# MY RUN YEAR (myrunyear.com) — resumen anual para runners
 
 Web 100 % estática (Vite + TypeScript sin framework). El usuario sube el `.zip` del export de Strava y todo se procesa en su navegador (Web Workers + canvas 2D). No hay backend.
 

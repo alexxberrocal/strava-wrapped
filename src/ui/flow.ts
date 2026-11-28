@@ -358,7 +358,7 @@ export class Flow {
       cards,
       painter,
       demo: true,
-      onShare: (card, index) => openShareSheet({ painter, card, index, filePrefix: `${slug(BRAND.name)}-demo`, brand: BRAND.name }),
+      onShare: (card, index) => openShareSheet({ painter, card, index, filePrefix: `${BRAND.slug}-demo`, brand: BRAND.text }),
       onClose: () => undefined,
     });
     player.open();
@@ -372,7 +372,7 @@ export class Flow {
       painter: b.painter,
       start,
       demo: b.demo,
-      onShare: (card, index) => openShareSheet({ painter: b.painter, card, index, filePrefix: this.filePrefix(), brand: BRAND.name }),
+      onShare: (card, index) => openShareSheet({ painter: b.painter, card, index, filePrefix: this.filePrefix(), brand: BRAND.text }),
       onClose: () => this.showResults(),
       onFinish: () => player.close(),
     });
@@ -381,7 +381,7 @@ export class Flow {
 
   private filePrefix(): string {
     const s = this.built?.stats;
-    return [slug(BRAND.name), s?.name ? slug(s.name) : '', s?.year].filter(Boolean).join('-');
+    return [BRAND.slug, s?.name ? slug(s.name) : '', s?.year].filter(Boolean).join('-');
   }
 
   // ------------------------------------------------------------ Resultados
@@ -422,7 +422,7 @@ export class Flow {
     b.cards.forEach((card, i) => {
       const canvas = h('canvas');
       const btn = h('button', { type: 'button', class: 'results__card', 'aria-label': `${tr('story.share')} ${i + 1}` }, canvas);
-      btn.addEventListener('click', () => openShareSheet({ painter: b.painter, card, index: i, filePrefix: this.filePrefix(), brand: BRAND.name }));
+      btn.addEventListener('click', () => openShareSheet({ painter: b.painter, card, index: i, filePrefix: this.filePrefix(), brand: BRAND.text }));
       grid.append(btn);
       requestAnimationFrame(() => paintThumb(b.painter, card, canvas, Math.max(170, btn.clientWidth || 190)));
     });

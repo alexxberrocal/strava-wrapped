@@ -10,7 +10,7 @@ export async function inviteFriends(): Promise<void> {
   const text = tr('share.textFull', { url: shareUrl(siteLang()) });
   if (typeof navigator.share === 'function') {
     try {
-      await navigator.share({ title: BRAND.name, text });
+      await navigator.share({ title: BRAND.text, text });
       return;
     } catch (err) {
       if ((err as DOMException)?.name === 'AbortError') return;

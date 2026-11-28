@@ -9,7 +9,7 @@ import { localizeHtml, notFound, robots, sitemap } from './scripts/site-pages.ts
  * URL pública de la web (con barra final): enlaces al compartir, vista previa en WhatsApp/redes,
  * sitemap. En GitHub Actions la fija el workflow (variable SITE_URL del repositorio o la de Pages).
  */
-const SITE_URL = (process.env.VITE_SITE_URL || 'https://runrecap.app/').replace(/\/?$/, '/');
+const SITE_URL = (process.env.VITE_SITE_URL || 'https://myrunyear.com/').replace(/\/?$/, '/');
 
 /**
  * Metadatos con la URL pública y, al compilar, una página estática por idioma (/en/, /ca/…) con
@@ -51,7 +51,7 @@ function sitePages(): Plugin {
 }
 
 /** Redirección de la raíz al idioma de la persona: ?lang=, el elegido antes o el del navegador. */
-const LANG_REDIRECT = `<script>(function(){try{var L=${JSON.stringify(LANGS)};function p(t){if(!t)return null;t=String(t).toLowerCase().split(/[-_]/)[0];if(t==='va'||t==='val')t='ca';if(t==='gl'||t==='eu')t='es';return L.indexOf(t)>=0?t:null}var l=p(new URLSearchParams(location.search).get('lang'));if(!l){try{l=p(localStorage.getItem('runrecap.lang'))}catch(e){}}if(!l){var n=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language];for(var i=0;i<n.length&&!l;i++)l=p(n[i])}location.replace((l||'en')+'/'+location.search+location.hash)}catch(e){}})();</script>`;
+const LANG_REDIRECT = `<script>(function(){try{var L=${JSON.stringify(LANGS)};function p(t){if(!t)return null;t=String(t).toLowerCase().split(/[-_]/)[0];if(t==='va'||t==='val')t='ca';if(t==='gl'||t==='eu')t='es';return L.indexOf(t)>=0?t:null}var l=p(new URLSearchParams(location.search).get('lang'));if(!l){try{l=p(localStorage.getItem('myrunyear.lang'))}catch(e){}}if(!l){var n=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language];for(var i=0;i<n.length&&!l;i++)l=p(n[i])}location.replace((l||'en')+'/'+location.search+location.hash)}catch(e){}})();</script>`;
 
 /** Solo en desarrollo: sirve el export de prueba (npm run sample) en /__sample.zip. */
 function sampleExport(): Plugin {

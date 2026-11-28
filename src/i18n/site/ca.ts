@@ -1,7 +1,7 @@
 import type { SiteMessages } from './es';
 
 const ca: SiteMessages = {
-  'meta.title': 'RUNRECAP · El teu any corrent, en una història',
+  'meta.title': 'My Run Year · El teu any corrent, en una història',
   'nav.how': 'Com funciona',
   'nav.faq': 'Preguntes',
   'hero.kicker': 'El teu resum runner de l’any',
@@ -97,7 +97,7 @@ const ca: SiteMessages = {
   'lang.label': 'Idioma',
   'hero.compat': 'Compatible amb Strava · Projecte independent',
   'faq.q8': 'És una app oficial de Strava?',
-  'faq.a8': 'No. RUNRECAP és un projecte independent: és compatible amb Strava perquè llegeix l’arxiu de dades que Strava et deixa descarregar, però no fa servir la teva contrasenya ni es connecta al teu compte.',
+  'faq.a8': 'No. My Run Year és un projecte independent: és compatible amb Strava perquè llegeix l’arxiu de dades que Strava et deixa descarregar, però no fa servir la teva contrasenya ni es connecta al teu compte.',
   'faq.q9': 'Feu servir galetes o analítica?',
   'faq.a9': 'No. No hi ha galetes de seguiment ni analítica, i les teves dades no surten mai del teu dispositiu. Només recordem al teu navegador l’idioma que tries.',
   'share.textFull': 'El meu any corrent 🏃 Fes-te el teu a {url}',

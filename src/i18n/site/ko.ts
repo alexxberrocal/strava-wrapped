@@ -2,7 +2,7 @@ import type { SiteMessages } from './es';
 
 // Strava no está en coreano: los pasos citan los menús en inglés, que es lo que verá el usuario.
 const ko: SiteMessages = {
-  'meta.title': 'RUNRECAP · 나의 러닝 한 해를 하나의 스토리로',
+  'meta.title': 'My Run Year · 나의 러닝 한 해를 하나의 스토리로',
   'nav.how': '이용 방법',
   'nav.faq': '자주 묻는 질문',
   'hero.kicker': '나의 연간 러닝 리캡',
@@ -98,7 +98,7 @@ const ko: SiteMessages = {
   'lang.label': '언어',
   'hero.compat': 'Strava 호환 · 독립 프로젝트',
   'faq.q8': 'Strava 공식 앱인가요?',
-  'faq.a8': '아니요. RUNRECAP은 독립 프로젝트예요. Strava에서 다운로드할 수 있는 데이터 아카이브를 읽기 때문에 Strava와 호환되지만, 비밀번호를 사용하거나 계정에 연결하지 않아요.',
+  'faq.a8': '아니요. My Run Year는 독립 프로젝트예요. Strava에서 다운로드할 수 있는 데이터 아카이브를 읽기 때문에 Strava와 호환되지만, 비밀번호를 사용하거나 계정에 연결하지 않아요.',
   'faq.q9': '쿠키나 분석 도구를 쓰나요?',
   'faq.a9': '아니요. 추적 쿠키도 분석 도구도 없고, 데이터는 절대 기기 밖으로 나가지 않아요. 브라우저에는 선택한 언어만 기억해요.',
   'share.textFull': '나의 러닝 한 해 🏃 {url}에서 나만의 리캡을 만들어 보세요',

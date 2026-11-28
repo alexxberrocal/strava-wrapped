@@ -77,7 +77,7 @@ if (stats.photos.length >= 3) {
     if (photos.length >= 5) break;
   }
 }
-const env = { fmt: new Fmt(lang, units), stats, countries, photos: photos as ImageBitmap[], brand: 'RUNRECAP', domain: 'runrecap.app' };
+const env = { fmt: new Fmt(lang, units), stats, countries, photos: photos as ImageBitmap[], brand: 'MY RUN YEAR', domain: 'myrunyear.com' };
 const deck = buildDeck(env, { cityMap: true });
 console.log(`${stats.runs} carreras · ${Math.round(stats.distance / 1000)} km · descartadas por imposibles: ${excluded}`);
 console.log(`Tarjetas (${deck.length}): ${deck.map((c) => c.id).join(' · ')}`);

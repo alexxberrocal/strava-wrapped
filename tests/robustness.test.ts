@@ -135,7 +135,7 @@ function statsOf(runs: Activity[]): WrappedStats {
   return computeStats({ year: 2026, name: 'Ana', lang: 'es', runs, others: [], prev: null, periodEnd: localTimeOf(Date.UTC(2026, 10, 24), 60), trimMeters: 250 });
 }
 
-const envOf = (s: WrappedStats): DeckEnv => ({ fmt: new Fmt('es', 'metric'), stats: s, countries: null, photos: [], brand: 'RUNRECAP', domain: 'runrecap.app' });
+const envOf = (s: WrappedStats): DeckEnv => ({ fmt: new Fmt('es', 'metric'), stats: s, countries: null, photos: [], brand: 'MY RUN YEAR', domain: 'myrunyear.com' });
 
 describe('pantallas inteligentes', () => {
   it('con una sola carrera, solo lo que tiene sentido', () => {

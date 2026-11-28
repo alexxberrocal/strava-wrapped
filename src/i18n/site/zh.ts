@@ -1,7 +1,7 @@
 import type { SiteMessages } from './es';
 
 const zh: SiteMessages = {
-  'meta.title': 'RUNRECAP · 用一个故事讲述你的跑步之年',
+  'meta.title': 'My Run Year · 用一个故事讲述你的跑步之年',
   'nav.how': '使用方法',
   'nav.faq': '常见问题',
   'hero.kicker': '你的年度跑步回顾',
@@ -97,7 +97,7 @@ const zh: SiteMessages = {
   'lang.label': '语言',
   'hero.compat': '兼容 Strava · 独立项目',
   'faq.q8': '这是 Strava 官方应用吗？',
-  'faq.a8': '不是。RUNRECAP 是一个独立项目：它兼容 Strava，因为它读取的是 Strava 允许你下载的数据档案，但它从不使用你的密码，也不会连接你的账户。',
+  'faq.a8': '不是。My Run Year 是一个独立项目：它兼容 Strava，因为它读取的是 Strava 允许你下载的数据档案，但它从不使用你的密码，也不会连接你的账户。',
   'faq.q9': '你们使用 Cookie 或统计分析吗？',
   'faq.a9': '不使用。没有跟踪 Cookie，也没有统计分析，你的数据永远不会离开你的设备。我们只会在你的浏览器中记住你选择的语言。',
   'share.textFull': '我的跑步之年 🏃 来 {url} 生成你的',

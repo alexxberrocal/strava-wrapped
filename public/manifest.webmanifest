@@ -1,6 +1,6 @@
 {
-  "name": "RUNRECAP · Tu año corriendo",
-  "short_name": "RUNRECAP",
+  "name": "My Run Year · Tu año corriendo",
+  "short_name": "My Run Year",
   "description": "Tu resumen runner del año a partir de tu archivo de Strava.",
   "start_url": "./",
   "display": "standalone",
