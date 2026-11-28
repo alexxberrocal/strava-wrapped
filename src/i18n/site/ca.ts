@@ -99,11 +99,21 @@ const ca: SiteMessages = {
   'faq.q8': 'És una app oficial de Strava?',
   'faq.a8': 'No. My Run Year és un projecte independent: és compatible amb Strava perquè llegeix l’arxiu de dades que Strava et deixa descarregar, però no fa servir la teva contrasenya ni es connecta al teu compte.',
   'faq.q9': 'Feu servir galetes o analítica?',
-  'faq.a9': 'No. No hi ha galetes de seguiment ni analítica, i les teves dades no surten mai del teu dispositiu. Només recordem al teu navegador l’idioma que tries.',
+  'faq.a9': 'No fem servir galetes. Només desem al teu navegador l’idioma que tries i comptem les visites de manera anònima, sense galetes ni perfils. Les teves dades de Strava no surten mai del teu dispositiu.',
   'share.textFull': 'El meu any corrent 🏃 Fes-te el teu a {url}',
   'share.imageErr': 'No s’ha pogut generar la imatge',
   'results.invite': 'Comparteix-ho amb els amics',
   'share.copied': 'Enllaç copiat',
+  'footer.nav': 'Més informació',
+  'footer.guide': 'Com descarregar les teves dades de Strava',
+  'footer.how': 'Com es calcula',
+  'footer.about': 'Sobre el projecte',
+  'footer.legalNotice': 'Avís legal',
+  'footer.privacy': 'Privacitat i galetes',
+  'footer.consent': 'Preferències de privacitat',
+  'step1.help': 'Veure la guia pas a pas',
+  'ads.label': 'Publicitat',
+  'faq.a9ads': 'Les teves dades de Strava no surten mai del teu dispositiu, i les visites es compten de manera anònima i sense galetes. La publicitat de Google fa servir galetes per personalitzar i mesurar els anuncis només si les acceptes; pots canviar la teva elecció a «Preferències de privacitat», al peu de la pàgina.',
 };
 
 export default ca;

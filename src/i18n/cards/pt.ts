@@ -257,7 +257,6 @@ const pt: CardMessages = {
   'sum.moving': 'Em movimento',
   'sum.runs': '{n, plural, one {Corrida} other {Corridas}}',
   'sum.elevation': 'Elevação',
-  'sum.countries': 'Países',
   'sum.best': 'Melhor {effort}',
   'sum.days': 'Dias correndo',
   'sum.pace': 'Ritmo médio {unit}',

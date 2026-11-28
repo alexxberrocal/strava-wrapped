@@ -99,11 +99,21 @@ const zh: SiteMessages = {
   'faq.q8': '这是 Strava 官方应用吗？',
   'faq.a8': '不是。My Run Year 是一个独立项目：它兼容 Strava，因为它读取的是 Strava 允许你下载的数据档案，但它从不使用你的密码，也不会连接你的账户。',
   'faq.q9': '你们使用 Cookie 或统计分析吗？',
-  'faq.a9': '不使用。没有跟踪 Cookie，也没有统计分析，你的数据永远不会离开你的设备。我们只会在你的浏览器中记住你选择的语言。',
+  'faq.a9': '我们不使用 Cookie。我们只在你的浏览器中保存你选择的语言，并以匿名方式统计访问量，不使用 Cookie，也不建立用户画像。你的 Strava 数据永远不会离开你的设备。',
   'share.textFull': '我的跑步之年 🏃 来 {url} 生成你的',
   'share.imageErr': '无法生成图片',
   'results.invite': '分享给朋友',
   'share.copied': '链接已复制',
+  'footer.nav': '更多信息',
+  'footer.guide': '如何下载你的 Strava 数据',
+  'footer.how': '数据是怎么算的',
+  'footer.about': '关于本项目',
+  'footer.legalNotice': '法律声明',
+  'footer.privacy': '隐私与 Cookie',
+  'footer.consent': '隐私偏好设置',
+  'step1.help': '查看分步指南',
+  'ads.label': '广告',
+  'faq.a9ads': '你的 Strava 数据永远不会离开你的设备，访问量以匿名方式统计，不使用 Cookie。只有在你同意的情况下，Google 广告才会使用 Cookie 来个性化和衡量广告；你可以随时在页面底部的“隐私偏好设置”中更改选择。',
 };
 
 export default zh;

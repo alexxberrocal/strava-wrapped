@@ -8,6 +8,7 @@ import { CardPainter, type Card, type DeckEnv } from './render/card';
 import { buildDeck } from './render/deck';
 import { H, W } from './render/kit';
 import { loadCountries } from './geo/countries';
+import { fillAds } from './ui/ads';
 import { Flow } from './ui/flow';
 import { MiniPlayer } from './ui/mini';
 import { watchAccents } from './ui/typo';
@@ -150,7 +151,10 @@ function renderGallery(cards: Card[], painter: CardPainter) {
 
 
 // Arranque: idioma (y con él la demo de la portada).
-void useLang(detectLang(), false).finally(() => watchAccents());
+void useLang(detectLang(), false).finally(() => {
+  watchAccents();
+  fillAds();
+});
 
 if (import.meta.env.DEV) {
   (window as unknown as Record<string, unknown>).__flow = flow;

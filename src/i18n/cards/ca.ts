@@ -257,7 +257,6 @@ const ca: CardMessages = {
   'sum.moving': 'En moviment',
   'sum.runs': '{n, plural, one {Cursa} other {Curses}}',
   'sum.elevation': 'Desnivell',
-  'sum.countries': 'Països',
   'sum.best': 'Millor {effort}',
   'sum.days': 'Dies corrent',
   'sum.pace': 'Ritme mitjà {unit}',

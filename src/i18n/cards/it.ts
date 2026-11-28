@@ -257,7 +257,6 @@ const it: CardMessages = {
   'sum.moving': 'In movimento',
   'sum.runs': '{n, plural, one {Corsa} other {Corse}}',
   'sum.elevation': 'Dislivello',
-  'sum.countries': 'Paesi',
   'sum.best': 'Miglior {effort}',
   'sum.days': 'Giorni di corsa',
   'sum.pace': 'Passo medio {unit}',

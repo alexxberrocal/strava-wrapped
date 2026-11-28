@@ -2,7 +2,7 @@ import { geoInterpolate, geoMercator, geoNaturalEarth1, geoPath } from 'd3-geo';
 import { ease, prog, rng } from '../anim';
 import { belowHero, counting, fadeUp, headline, heroNumber, kicker, paragraph, ribbon } from '../blocks';
 import type { Card, DeckEnv, Frame } from '../card';
-import { COLORS, CW, H, M, W, capRatio, cumulative, drawTracked, fitRoute, fitSize, roundRect, setFont, tracePartial, trackedWidth, type Box } from '../kit';
+import { COLORS, CW, H, M, W, capRatio, cumulative, drawTracked, fitRoute, fitSize, layoutRich, roundRect, setFont, tracePartial, trackedWidth, type Box } from '../kit';
 import { EARTH_KM, MARATHON_M, pickDestination, pickLandmark } from '../../stats/equivalences';
 import { localFromDoy, daysInYear } from '../../stats/time';
 import { marathonsLabel, yearDelta } from './common';
@@ -24,17 +24,6 @@ export function introCard(env: DeckEnv): Card {
     duration: 6500,
     render(f) {
       const { ctx } = f;
-      const route = f.memo('route', () => {
-        const t = s.longestRun?.track ?? s.routes[0]?.track;
-        // Sin GPS: una pista de atletismo (dos rectas y dos curvas) que se dibuja igual que una ruta.
-        const pts = t ? fitRoute(t, { x: 70, y: 1180, w: 940, h: 560 }, 0.02) : stadium(W / 2, 1470, 860, 400);
-        return { pts, cum: cumulative(pts) };
-      });
-      if (route) {
-        ribbon(f, route.pts, route.cum, ease.inOutCubic(prog(f.t, 900, 2800)), 'rgba(255,255,255,0.18)', 22, false);
-        ribbon(f, route.pts, route.cum, ease.inOutCubic(prog(f.t, 900, 2800)), COLORS.white, 6);
-      }
-      kicker(f, fmt.m('intro.kicker'), M, KICK, 80);
       const name = fmt.upper(s.name || fmt.m('runner'));
       const size = fitSize(ctx, name, 'display', 290, CW);
       // Nombres con tilde (ÁLVARO, ÀLEX, ÍÑIGO): la tilde no puede rozar el antetítulo de encima.
@@ -43,13 +32,28 @@ export function introCard(env: DeckEnv): Card {
         // headline() lo dibuja en mayúsculas también en chino, japonés y coreano ("MARÍA").
         return KICK + 30 + ctx.measureText(name.toUpperCase()).actualBoundingBoxAscent;
       });
-      let y = Math.max(heroBaseline(f, size, KICK + 70), accentTop);
-      headline(f, [name], M, y, size, { color: COLORS.ink, start: 200 });
-      y += 290 * 0.98 + 10;
-      headline(f, [String(s.year)], M, y, 290, { color: COLORS.white, start: 380 });
+      const nameY = Math.max(heroBaseline(f, size, KICK + 70), accentTop);
+      const yearY = nameY + 290 * 0.98 + 10;
       const vars = { runs: s.runs, year: String(s.year), date: fmt.date(s.periodEnd), dateArt: fmt.dateArt(s.periodEnd) };
       const text = !s.isPartialYear ? fmt.m('intro.full', vars) : s.daysInPeriod <= 1 ? fmt.m('intro.jan1', vars) : fmt.m('intro.partial', vars);
-      paragraph(f, text, M, y + 110, 800, 42, { start: 800, color: COLORS.ink, hl: COLORS.white });
+      const PARA = 42, PARA_W = 800, textY = yearY + 110;
+      // La ruta ocupa el hueco que queda DEBAJO del texto (dos, tres o cuatro líneas según el idioma
+      // y la fecha): con la caja fija, el trazo pisaba la última línea.
+      const route = f.memo(`route:${text}:${Math.round(textY)}`, () => {
+        const lay = layoutRich(ctx, text, PARA_W, PARA, 500, 800, 1.34);
+        const top = textY + (lay.lines.length - 1) * lay.lineHeight + PARA * 0.3 + 62;
+        const box = { x: 70, y: top, w: 940, h: Math.max(240, 1745 - top) };
+        const t = s.longestRun?.track ?? s.routes[0]?.track;
+        // Sin GPS: una pista de atletismo (dos rectas y dos curvas) que se dibuja igual que una ruta.
+        const pts = t ? fitRoute(t, box, 0.02) : stadium(W / 2, box.y + box.h / 2, 860, Math.min(400, box.h - 30));
+        return { pts, cum: cumulative(pts) };
+      });
+      ribbon(f, route.pts, route.cum, ease.inOutCubic(prog(f.t, 900, 2800)), 'rgba(255,255,255,0.18)', 22, false);
+      ribbon(f, route.pts, route.cum, ease.inOutCubic(prog(f.t, 900, 2800)), COLORS.white, 6);
+      kicker(f, fmt.m('intro.kicker'), M, KICK, 80);
+      headline(f, [name], M, nameY, size, { color: COLORS.ink, start: 200 });
+      headline(f, [String(s.year)], M, yearY, 290, { color: COLORS.white, start: 380 });
+      paragraph(f, text, M, textY, PARA_W, PARA, { start: 800, color: COLORS.ink, hl: COLORS.white });
     },
   };
 }

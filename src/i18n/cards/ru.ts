@@ -257,7 +257,6 @@ const ru: CardMessages = {
   'sum.moving': 'В движении',
   'sum.runs': '{n, plural, one {Пробежка} few {Пробежки} many {Пробежек} other {Пробежки}}',
   'sum.elevation': 'Набор высоты',
-  'sum.countries': 'Страны',
   'sum.best': 'Лучшее: {effort}',
   'sum.days': 'Дней с бегом',
   'sum.pace': 'Ср. темп {unit}',

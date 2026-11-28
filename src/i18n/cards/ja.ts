@@ -257,7 +257,6 @@ const ja: CardMessages = {
   'sum.moving': '運動時間',
   'sum.runs': '{n, plural, other {ラン回数}}',
   'sum.elevation': '獲得標高',
-  'sum.countries': '国',
   'sum.best': 'ベスト{effort}',
   'sum.days': 'ラン日数',
   'sum.pace': '平均ペース{unit}',

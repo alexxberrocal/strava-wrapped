@@ -28,6 +28,8 @@ export const REC = {
   nonFinite: [] as string[],
   /** Sin grano: así se puede medir qué píxeles son fondo. */
   noGrain: false,
+  /** Sin textos en el lienzo vigilado: queda solo el dibujo (para ver si algo pasa por debajo de las letras). */
+  noText: false,
 };
 
 let ready = false;
@@ -44,10 +46,10 @@ export function setupCanvasEnv(root: string) {
   }
   // Titulares en cirílico, chino, japonés y coreano: los mismos alias que la web (scripts/gen-fonts.ts).
   for (const [pkg, family, weight] of [
-    ['oswald', 'RR Display Cyr', '700'],
-    ['noto-sans-sc', 'RR Display SC', '900'],
-    ['noto-sans-jp', 'RR Display JP', '900'],
-    ['noto-sans-kr', 'RR Display KR', '900'],
+    ['oswald', 'MRY Display Cyr', '700'],
+    ['noto-sans-sc', 'MRY Display SC', '900'],
+    ['noto-sans-jp', 'MRY Display JP', '900'],
+    ['noto-sans-kr', 'MRY Display KR', '900'],
   ]) {
     const dir = join(root, 'node_modules', '@fontsource', pkg, 'files');
     for (const f of readdirSync(dir)) if (f.endsWith(`-${weight}-normal.woff2`)) GlobalFonts.registerFromPath(join(dir, f), family);
@@ -153,6 +155,7 @@ function strictBrowser() {
           stroke: name === 'strokeText',
         });
       }
+      if (REC.noText && (this as unknown as { canvas: Canvas }).canvas === REC.target) return undefined;
       return orig.apply(this, args);
     };
   }

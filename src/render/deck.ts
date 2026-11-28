@@ -61,9 +61,11 @@ export function cardSkipReason(id: CardId, env: DeckEnv, opts: DeckOptions = { c
     case 'curiosities':
       return s.runs >= 6 && curiosityTiles(env).length >= 4 ? null : 'pocas curiosidades';
     case 'others': {
-      const count = s.others.reduce((a, o) => a + o.count, 0);
+      // Hace falta practicar de verdad al menos dos deportes más (un paseo o una clase suelta no
+      // cuentan): con uno solo, la pantalla se queda en una barra y no dice nada.
+      const real = s.others.filter((o) => (o.count >= 3 && o.moving >= 3600) || (o.count >= 2 && o.moving >= 4 * 3600));
       const secs = s.others.reduce((a, o) => a + o.moving, 0);
-      return count >= 4 && (secs >= 3 * 3600 || count >= 8) ? null : 'pocos otros deportes';
+      return real.length >= 2 && secs >= 5 * 3600 ? null : 'menos de 2 deportes más con cierta dedicación';
     }
     case 'photos':
       return env.photos.length >= 3 ? null : 'menos de 3 fotos';

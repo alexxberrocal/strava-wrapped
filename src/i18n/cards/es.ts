@@ -281,7 +281,6 @@ export const es = {
   'sum.moving': 'En movimiento',
   'sum.runs': '{n, plural, one {Carrera} other {Carreras}}',
   'sum.elevation': 'Desnivel',
-  'sum.countries': 'Países',
   'sum.best': 'Mejor {effort}',
   'sum.days': 'Días corriendo',
   'sum.pace': 'Ritmo medio {unit}',

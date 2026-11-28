@@ -8,6 +8,7 @@ import { CardPainter, type Card, type DeckEnv } from '../render/card';
 import { buildDeck } from '../render/deck';
 import { ensureCardAssets, preloadDeckText } from '../render/fonts';
 import type { Activity, WrappedStats } from '../stats/types';
+import { fillAds } from './ads';
 import { downloadBlob, h, slug, toast } from './dom';
 import { paintThumb, renderZip } from './export';
 import { StoryPlayer } from './player';
@@ -426,7 +427,10 @@ export class Flow {
       grid.append(btn);
       requestAnimationFrame(() => paintThumb(b.painter, card, canvas, Math.max(170, btn.clientWidth || 190)));
     });
-    requestAnimationFrame(() => this.resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    requestAnimationFrame(() => {
+      this.resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      fillAds(this.resultsEl);
+    });
   }
 
   // ------------------------------------------------------------ Errores y reinicio

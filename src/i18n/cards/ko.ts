@@ -257,7 +257,6 @@ const ko: CardMessages = {
   'sum.moving': '운동 시간',
   'sum.runs': '{n, plural, other {러닝 횟수}}',
   'sum.elevation': '상승 고도',
-  'sum.countries': '국가',
   'sum.best': '베스트 {effort}',
   'sum.days': '달린 날',
   'sum.pace': '평균 페이스 {unit}',

@@ -4,6 +4,7 @@
  *   - excepciones (también las que lanzaría el navegador: radios negativos, degradados con NaN…)
  *   - textos con NaN/undefined/"–", números negativos, letras sin tipografía
  *   - textos que se salen de la tarjeta o se pisan entre sí
+ *   - dibujos (rutas, gráficas, anillos) que pasan por debajo de un titular o un párrafo
  *   - huecos vacíos grandes (pantallas pobres)
  *   - incoherencias en las estadísticas
  *
@@ -190,11 +191,52 @@ function auditCard(id: string, painter: InstanceType<typeof CardPainter>, card: 
   REC.noGrain = false;
   if (REC.nonFinite.length) add({ kind: 'coordenadas NaN', severity: 'error', profile: id, card: card.id, detail: [...new Set(REC.nonFinite)].slice(0, 4).join(' | ') });
   const texts = REC.texts.filter((t) => t.alpha > 0.05);
-  checkTexts(id, card.id, texts);
+  const runs = checkTexts(id, card.id, texts);
   checkEmpty(id, card, ctx);
+  // 3) La misma tarjeta sin textos: lo que quede dentro de la caja de un texto es un dibujo que lo pisa.
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  REC.noText = true;
+  REC.noGrain = true;
+  REC.target = big;
+  try {
+    painter.paint(ctx, card, 0, 1, { still: true, chrome: false });
+    checkInk(id, card, runs, ctx);
+  } catch {
+    /* ya se apuntó arriba */
+  }
+  REC.noText = false;
+  REC.noGrain = false;
 }
 
-function checkTexts(id: string, cardId: string, texts: TextBox[]) {
+/**
+ * Titulares y párrafos (30 px o más) no pueden tener trazos debajo: una ruta, un anillo o una barra
+ * que cruza las letras. Un fondo liso a propósito (una píldora, una barra entera) cubre casi toda la
+ * caja y no cuenta; tampoco el nombre del resumen final, que va sobre el dibujo de las rutas.
+ */
+function checkInk(id: string, card: Card, runs: Run[], ctx: CanvasRenderingContext2D) {
+  const bg = THEMES[card.theme].bg;
+  const [br, bgc, bb] = [parseInt(bg.slice(1, 3), 16), parseInt(bg.slice(3, 5), 16), parseInt(bg.slice(5, 7), 16)];
+  const img = ctx.getImageData(0, 0, W, H).data;
+  for (const r of runs) {
+    const size = Number(/(\d+(?:\.\d+)?)px/.exec(r.font)?.[1] ?? 20);
+    if (size < 30 || r.text.trim().length < 2) continue;
+    if (card.id === 'summary' && r.y1 < 900) continue;
+    const x0 = Math.max(0, Math.floor(r.x0)), x1 = Math.min(W, Math.ceil(r.x1));
+    const y0 = Math.max(0, Math.floor(r.y0)), y1 = Math.min(H, Math.ceil(r.y1));
+    let ink = 0, total = 0;
+    for (let y = y0; y < y1; y += 2)
+      for (let x = x0; x < x1; x += 2) {
+        const k = (y * W + x) * 4;
+        total++;
+        if (Math.abs(img[k] - br) + Math.abs(img[k + 1] - bgc) + Math.abs(img[k + 2] - bb) > 24) ink++;
+      }
+    if (!total) continue;
+    const frac = ink / total;
+    if (frac > 0.012 && frac < 0.85) add({ kind: 'dibujo bajo el texto', severity: 'warn', profile: id, card: card.id, detail: `"${r.text.slice(0, 44)}" ${Math.round(frac * 100)} % de su caja (y≈${Math.round(r.y0)}–${Math.round(r.y1)})` });
+  }
+}
+
+function checkTexts(id: string, cardId: string, texts: TextBox[]): Run[] {
   for (const t of texts) {
     if (/NaN|undefined|Infinity|null|\[object/.test(t.text)) add({ kind: 'texto roto', severity: 'error', profile: id, card: cardId, detail: t.text });
     if (t.text.includes('−') && !(cardId === 'distance' && /^−\d/.test(t.text)) && !/°[CF]/.test(t.text)) add({ kind: 'número negativo', severity: 'warn', profile: id, card: cardId, detail: t.text });
@@ -220,6 +262,7 @@ function checkTexts(id: string, cardId: string, texts: TextBox[]) {
       const areaMin = Math.min((a.x1 - a.x0) * (a.y1 - a.y0), (b.x1 - b.x0) * (b.y1 - b.y0));
       if (ix * iy > areaMin * 0.12) add({ kind: 'textos que se pisan', severity: 'warn', profile: id, card: cardId, detail: `"${a.text.slice(0, 40)}" × "${b.text.slice(0, 40)}"` });
     }
+  return runs;
 }
 
 interface Run {

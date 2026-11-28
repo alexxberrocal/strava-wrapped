@@ -257,7 +257,6 @@ const zh: CardMessages = {
   'sum.moving': '运动时间',
   'sum.runs': '{n, plural, other {跑步次数}}',
   'sum.elevation': '爬升',
-  'sum.countries': '国家',
   'sum.best': '最佳{effort}',
   'sum.days': '跑步天数',
   'sum.pace': '平均配速{unit}',

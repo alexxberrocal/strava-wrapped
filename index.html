@@ -41,6 +41,7 @@
     <meta name="twitter:title" content="My Run Year · Tu año corriendo, en una historia" />
     <meta name="twitter:description" content="Crea tu resumen anual de running con el archivo de datos de Strava: kilómetros, países, mapa de calor, marcas y más. Listo para Instagram. Gratis y 100 % en tu navegador." />
     <meta name="twitter:image" content="%SITE_URL%og-es.jpg" />
+    <!--ads:head-->
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"My Run Year","url":"%SITE_URL%","applicationCategory":"SportsApplication","operatingSystem":"Web","browserRequirements":"Requires JavaScript","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"description":"Crea tu resumen anual de running con el archivo de datos de Strava.","inLanguage":"es-ES"}</script>
   </head>
   <body>
@@ -124,6 +125,7 @@
               <p data-i18n-html="step1.text"></p>
               <a class="btn btn--light btn--small" id="strava-link" href="https://www.strava.com/athlete/download_my_account" target="_blank" rel="noopener noreferrer"><span data-i18n="step1.cta">Abrir Strava</span> <span aria-hidden="true">↗</span></a>
               <p class="step__note" data-i18n="step1.note"></p>
+              <a class="step__help" data-page="guide" href="es/guide/" data-i18n="step1.help">Ver la guía paso a paso</a>
             </article>
             <article class="step">
               <span class="step__num">02</span>
@@ -167,6 +169,7 @@
           <p class="results__hint" data-i18n="results.hint"></p>
           <div class="results__grid" id="results-grid"></div>
         </div>
+      <!--ads:results-->
       </section>
       <section class="gallery">
         <div class="wrap">
@@ -175,6 +178,8 @@
         </div>
         <div class="gallery__strip" id="gallery" tabindex="0"></div>
       </section>
+
+      <!--ads:home-->
 
       <section class="faq" id="faq">
         <div class="wrap faq__inner">
@@ -205,6 +210,14 @@
           </svg>
           <span>MY RUN YEAR</span>
         </div>
+        <nav class="footer__links" aria-label="Más información" data-i18n-aria="footer.nav">
+          <a data-page="guide" href="es/guide/" data-i18n="footer.guide">Cómo descargar tus datos de Strava</a>
+          <a data-page="how" href="es/how-it-works/" data-i18n="footer.how">Cómo se calcula</a>
+          <a data-page="about" href="es/about/" data-i18n="footer.about">Sobre el proyecto</a>
+          <a data-page="legal" href="es/legal/" data-i18n="footer.legalNotice">Aviso legal</a>
+          <a data-page="privacy" href="es/privacy/" data-i18n="footer.privacy">Privacidad y cookies</a>
+          <!--ads:consent-->
+        </nav>
         <p data-i18n="footer.legal"></p>
         <p class="footer__credits" data-i18n="footer.credits"></p>
       </div>

@@ -99,11 +99,21 @@ const it: SiteMessages = {
   'faq.q8': 'È un’app ufficiale di Strava?',
   'faq.a8': 'No. My Run Year è un progetto indipendente: è compatibile con Strava perché legge l’archivio di dati che Strava ti permette di scaricare, ma non usa mai la tua password e non si collega al tuo account.',
   'faq.q9': 'Usate cookie o statistiche?',
-  'faq.a9': 'No. Niente cookie di tracciamento né statistiche, e i tuoi dati non lasciano mai il tuo dispositivo. Ricordiamo solo, nel tuo browser, la lingua che scegli.',
+  'faq.a9': 'Non usiamo cookie. Salviamo solo nel tuo browser la lingua che scegli e contiamo le visite in forma anonima, senza cookie né profili. I tuoi dati di Strava non lasciano mai il tuo dispositivo.',
   'share.textFull': 'Il mio anno di corsa 🏃 Crea il tuo su {url}',
   'share.imageErr': 'Impossibile creare l’immagine',
   'results.invite': 'Condividi con gli amici',
   'share.copied': 'Link copiato',
+  'footer.nav': 'Altre informazioni',
+  'footer.guide': 'Come scaricare i tuoi dati da Strava',
+  'footer.how': 'Come si calcola',
+  'footer.about': 'Il progetto',
+  'footer.legalNotice': 'Note legali',
+  'footer.privacy': 'Privacy e cookie',
+  'footer.consent': 'Preferenze sulla privacy',
+  'step1.help': 'Vedi la guida passo passo',
+  'ads.label': 'Pubblicità',
+  'faq.a9ads': 'I tuoi dati di Strava non lasciano mai il tuo dispositivo, e le visite si contano in forma anonima e senza cookie. La pubblicità di Google usa i cookie per personalizzare e misurare gli annunci solo se li accetti; puoi cambiare la tua scelta in «Preferenze sulla privacy», in fondo alla pagina.',
 };
 
 export default it;

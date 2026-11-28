@@ -78,20 +78,20 @@ export const THEMES: Record<ThemeName, Theme> = {
 };
 
 /*
- * Tipografías según la escritura del idioma. Titulares: Anton; en ruso, Oswald (alias "RR Display
+ * Tipografías según la escritura del idioma. Titulares: Anton; en ruso, Oswald (alias "MRY Display
  * Cyr") para que todo el titular sea de la misma familia; en chino, japonés y coreano, las cifras y
- * letras latinas siguen en Anton y los caracteres propios van en Noto Sans Black (alias "RR Display
+ * letras latinas siguen en Anton y los caracteres propios van en Noto Sans Black (alias "MRY Display
  * SC/JP/KR", ver fonts.ts). El resto de alias quedan detrás por si un nombre trae otra escritura.
  * Texto corrido: Archivo y, para letras que no tiene, la del sistema.
  */
-const RR = { cyrillic: '"RR Display Cyr"', sc: '"RR Display SC"', ja: '"RR Display JP"', ko: '"RR Display KR"' };
+const ALT = { cyrillic: '"MRY Display Cyr"', sc: '"MRY Display SC"', ja: '"MRY Display JP"', ko: '"MRY Display KR"' };
 const DISPLAY_TAIL = '"Arial Narrow", Impact, sans-serif';
 const DISPLAY_STACKS: Record<Script, string> = {
-  latin: `Anton, ${RR.cyrillic}, ${RR.sc}, ${RR.ja}, ${RR.ko}, ${DISPLAY_TAIL}`,
-  cyrillic: `${RR.cyrillic}, Anton, ${RR.sc}, ${RR.ja}, ${RR.ko}, ${DISPLAY_TAIL}`,
-  sc: `Anton, ${RR.sc}, ${RR.ja}, ${RR.ko}, ${RR.cyrillic}, "PingFang SC", "Microsoft YaHei", ${DISPLAY_TAIL}`,
-  ja: `Anton, ${RR.ja}, ${RR.sc}, ${RR.ko}, ${RR.cyrillic}, "Hiragino Sans", "Yu Gothic", ${DISPLAY_TAIL}`,
-  ko: `Anton, ${RR.ko}, ${RR.ja}, ${RR.sc}, ${RR.cyrillic}, "Apple SD Gothic Neo", "Malgun Gothic", ${DISPLAY_TAIL}`,
+  latin: `Anton, ${ALT.cyrillic}, ${ALT.sc}, ${ALT.ja}, ${ALT.ko}, ${DISPLAY_TAIL}`,
+  cyrillic: `${ALT.cyrillic}, Anton, ${ALT.sc}, ${ALT.ja}, ${ALT.ko}, ${DISPLAY_TAIL}`,
+  sc: `Anton, ${ALT.sc}, ${ALT.ja}, ${ALT.ko}, ${ALT.cyrillic}, "PingFang SC", "Microsoft YaHei", ${DISPLAY_TAIL}`,
+  ja: `Anton, ${ALT.ja}, ${ALT.sc}, ${ALT.ko}, ${ALT.cyrillic}, "Hiragino Sans", "Yu Gothic", ${DISPLAY_TAIL}`,
+  ko: `Anton, ${ALT.ko}, ${ALT.ja}, ${ALT.sc}, ${ALT.cyrillic}, "Apple SD Gothic Neo", "Malgun Gothic", ${DISPLAY_TAIL}`,
 };
 const TEXT_STACKS: Record<Script, string> = {
   latin: 'Archivo, "Helvetica Neue", Arial, sans-serif',
@@ -103,7 +103,7 @@ const TEXT_STACKS: Record<Script, string> = {
   ko: 'Archivo, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Noto Sans CJK KR", sans-serif',
 };
 /** Familia que manda en los titulares de cada escritura (para saber si ya ha cargado). */
-const DISPLAY_MAIN: Record<Script, string> = { latin: 'Anton', cyrillic: RR.cyrillic, sc: 'Anton', ja: 'Anton', ko: 'Anton' };
+const DISPLAY_MAIN: Record<Script, string> = { latin: 'Anton', cyrillic: ALT.cyrillic, sc: 'Anton', ja: 'Anton', ko: 'Anton' };
 
 let script: Script = 'latin';
 export let FONT_DISPLAY = DISPLAY_STACKS.latin;

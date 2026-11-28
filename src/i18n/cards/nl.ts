@@ -256,7 +256,6 @@ const nl: CardMessages = {
   'sum.moving': 'Bewegingstijd',
   'sum.runs': '{n, plural, one {Loop} other {Lopen}}',
   'sum.elevation': 'Hoogtemeters',
-  'sum.countries': 'Landen',
   'sum.best': 'Beste {effort}',
   'sum.days': 'Loopdagen',
   'sum.pace': 'Gem. tempo {unit}',

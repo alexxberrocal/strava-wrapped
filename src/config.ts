@@ -22,6 +22,40 @@ export const BRAND = {
   stravaExportUrl: 'https://www.strava.com/athlete/download_my_account',
 };
 
+/**
+ * Titular de la web (aviso legal, art. 10 de la LSSI). El NIF y el domicilio son obligatorios desde
+ * que la web tenga ingresos (publicidad): sin ellos no se pueden activar los anuncios (el build falla).
+ */
+export const OWNER = {
+  name: 'Àlex Berrocal',
+  nif: '',
+  address: '',
+  /** Correo de contacto (redirigido con Cloudflare Email Routing: no enseña el personal). */
+  email: 'hola@myrunyear.com',
+};
+
+/**
+ * Publicidad (Google AdSense). Con `client` vacío no hay anuncios ni cookies, y los textos legales
+ * dicen eso mismo. Al rellenarlo ("ca-pub-…"): se carga el script de AdSense (con su aviso de
+ * consentimiento homologado), se publica ads.txt, aparece "Preferencias de privacidad" en el pie y
+ * los textos legales pasan a su versión con publicidad. Los huecos de anuncio solo se pintan si
+ * tienen su identificador (`slots`), y nunca dentro de la historia ni en las imágenes.
+ */
+export const ADS = {
+  client: '',
+  slots: {
+    /** Portada, entre la galería y las preguntas. */
+    home: '',
+    /** Bajo la parrilla de pantallas, tras ver la historia. */
+    results: '',
+    /** Al final de las páginas de contenido (guía, cómo se calcula…). */
+    page: '',
+  },
+};
+
+/** Fecha de la última revisión de los textos legales (AAAA-MM-DD). */
+export const LEGAL_UPDATED = '2026-11-28';
+
 /** Enlace para compartir: la página del idioma, con su vista previa traducida. */
 export function shareUrl(lang: Lang): string {
   return `${BRAND.siteUrl}${lang}/`;

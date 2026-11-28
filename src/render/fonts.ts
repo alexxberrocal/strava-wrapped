@@ -27,17 +27,17 @@ export function ensureFonts(sample = ''): Promise<void> {
 }
 
 // ---------------- Titulares en cirílico, chino, japonés y coreano ----------------
-// Anton solo tiene alfabeto latino. Para el resto hay un alias "RR Display …" (generado con
+// Anton solo tiene alfabeto latino. Para el resto hay un alias "MRY Display …" (generado con
 // scripts/gen-fonts.ts) que se descarga solo si hace falta y, dentro de él, solo los trozos
 // (unicode-range) con las letras que aparecen.
 
 type OtherScript = Exclude<Script, 'latin'>;
 
 export const DISPLAY_ALIAS: Record<OtherScript, string> = {
-  cyrillic: 'RR Display Cyr',
-  sc: 'RR Display SC',
-  ja: 'RR Display JP',
-  ko: 'RR Display KR',
+  cyrillic: 'MRY Display Cyr',
+  sc: 'MRY Display SC',
+  ja: 'MRY Display JP',
+  ko: 'MRY Display KR',
 };
 
 const SCRIPT_CSS: Record<OtherScript, () => Promise<unknown>> = {

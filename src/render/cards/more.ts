@@ -841,7 +841,6 @@ export function summaryCard(env: DeckEnv): Card {
   // Cada dato solo si dice algo (nada de "0 m de desnivel" en la cinta).
   const extra: [string, string, string][] = [];
   if (s.elevation >= 100) extra.push([fmt.elev(s.elevation), fmt.upper(fmt.elevUnit), up('sum.elevation')]);
-  if (s.countries.length > 1) extra.push([fmt.num(s.countries.length), '', up('sum.countries')]);
   const best = s.efforts.find((e) => e.target === 10000) ?? s.efforts.find((e) => e.target === 5000);
   if (best && s.runs >= 3) extra.push([fmt.dur(best.time), '', up('sum.best', { effort: effortLabel(fmt, best.target) })]);
   if (s.activeDays >= 2) extra.push([fmt.num(s.activeDays), '', up('sum.days')]);
@@ -861,6 +860,10 @@ export function summaryCard(env: DeckEnv): Card {
         const layer = f.layer('art', (g) => {
           const pr = projectRoutes(tracks, art, { lo: 0.03, hi: 0.97, pad: 0.02 });
           g.save();
+          // Las tiradas que se salen del encuadre no bajan hasta las cifras ni suben a la cabecera.
+          g.beginPath();
+          g.rect(0, art.y - 30, W, art.h + 50);
+          g.clip();
           g.globalCompositeOperation = 'lighter';
           const alpha = Math.max(0.16, Math.min(0.5, 1.6 / Math.sqrt(tracks.length) + 0.06));
           g.strokeStyle = `rgba(252,90,24,${alpha.toFixed(3)})`;

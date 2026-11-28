@@ -99,11 +99,21 @@ const nl: SiteMessages = {
   'faq.q8': 'Is dit een officiële Strava-app?',
   'faq.a8': 'Nee. My Run Year is een onafhankelijk project: het is compatibel met Strava omdat het het gegevensarchief leest dat je bij Strava kunt downloaden, maar het gebruikt nooit je wachtwoord en maakt geen verbinding met je account.',
   'faq.q9': 'Gebruiken jullie cookies of analytics?',
-  'faq.a9': 'Nee. Geen trackingcookies of analytics, en je gegevens verlaten nooit je apparaat. We onthouden alleen, in je browser, de taal die je kiest.',
+  'faq.a9': 'We gebruiken geen cookies. We bewaren alleen de taal die je kiest in je browser en tellen bezoeken anoniem, zonder cookies of profielen. Je Strava-gegevens verlaten nooit je apparaat.',
   'share.textFull': 'Mijn hardloopjaar 🏃 Maak het jouwe op {url}',
   'share.imageErr': 'De afbeelding kon niet worden gemaakt',
   'results.invite': 'Delen met vrienden',
   'share.copied': 'Link gekopieerd',
+  'footer.nav': 'Meer informatie',
+  'footer.guide': 'Zo download je je Strava-gegevens',
+  'footer.how': 'Zo wordt het berekend',
+  'footer.about': 'Over het project',
+  'footer.legalNotice': 'Juridische informatie',
+  'footer.privacy': 'Privacy en cookies',
+  'footer.consent': 'Privacyvoorkeuren',
+  'step1.help': 'Bekijk de stap-voor-stapgids',
+  'ads.label': 'Advertentie',
+  'faq.a9ads': 'Je Strava-gegevens verlaten nooit je apparaat, en bezoeken worden anoniem en zonder cookies geteld. De advertenties van Google gebruiken alleen cookies om advertenties te personaliseren en te meten als je ze accepteert; je keuze kun je wijzigen onder „Privacyvoorkeuren” onderaan de pagina.',
 };
 
 export default nl;

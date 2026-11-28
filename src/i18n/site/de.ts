@@ -99,11 +99,21 @@ const de: SiteMessages = {
   'faq.q8': 'Ist das eine offizielle Strava-App?',
   'faq.a8': 'Nein. My Run Year ist ein unabhängiges Projekt: kompatibel mit Strava, weil es das Datenarchiv liest, das Strava dich herunterladen lässt – aber es nutzt nie dein Passwort und verbindet sich nicht mit deinem Konto.',
   'faq.q9': 'Nutzt ihr Cookies oder Analytics?',
-  'faq.a9': 'Nein. Keine Tracking-Cookies, keine Analytics, und deine Daten verlassen nie dein Gerät. Wir merken uns nur in deinem Browser die Sprache, die du wählst.',
+  'faq.a9': 'Wir verwenden keine Cookies. Wir speichern nur die gewählte Sprache in deinem Browser und zählen Besuche anonym, ohne Cookies und ohne Profile. Deine Strava-Daten verlassen nie dein Gerät.',
   'share.textFull': 'Mein Laufjahr 🏃 Erstell deins auf {url}',
   'share.imageErr': 'Das Bild konnte nicht erstellt werden',
   'results.invite': 'Mit Freunden teilen',
   'share.copied': 'Link kopiert',
+  'footer.nav': 'Mehr Informationen',
+  'footer.guide': 'So lädst du deine Strava-Daten herunter',
+  'footer.how': 'So wird gerechnet',
+  'footer.about': 'Über das Projekt',
+  'footer.legalNotice': 'Impressum',
+  'footer.privacy': 'Datenschutz und Cookies',
+  'footer.consent': 'Datenschutz-Einstellungen',
+  'step1.help': 'Zur Schritt-für-Schritt-Anleitung',
+  'ads.label': 'Anzeige',
+  'faq.a9ads': 'Deine Strava-Daten verlassen nie dein Gerät, und Besuche werden anonym und ohne Cookies gezählt. Die Werbung von Google nutzt Cookies zum Personalisieren und Messen der Anzeigen nur, wenn du zustimmst; deine Auswahl kannst du unter „Datenschutz-Einstellungen“ unten auf der Seite ändern.',
 };
 
 export default de;

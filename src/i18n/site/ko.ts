@@ -100,11 +100,21 @@ const ko: SiteMessages = {
   'faq.q8': 'Strava 공식 앱인가요?',
   'faq.a8': '아니요. My Run Year는 독립 프로젝트예요. Strava에서 다운로드할 수 있는 데이터 아카이브를 읽기 때문에 Strava와 호환되지만, 비밀번호를 사용하거나 계정에 연결하지 않아요.',
   'faq.q9': '쿠키나 분석 도구를 쓰나요?',
-  'faq.a9': '아니요. 추적 쿠키도 분석 도구도 없고, 데이터는 절대 기기 밖으로 나가지 않아요. 브라우저에는 선택한 언어만 기억해요.',
+  'faq.a9': '쿠키를 사용하지 않아요. 브라우저에는 선택한 언어만 저장하고, 방문 수는 쿠키나 프로필 없이 익명으로 집계해요. Strava 데이터는 절대 기기 밖으로 나가지 않아요.',
   'share.textFull': '나의 러닝 한 해 🏃 {url}에서 나만의 리캡을 만들어 보세요',
   'share.imageErr': '이미지를 만들 수 없어요',
   'results.invite': '친구에게 공유',
   'share.copied': '링크를 복사했어요',
+  'footer.nav': '더 알아보기',
+  'footer.guide': 'Strava 데이터 다운로드 방법',
+  'footer.how': '계산 방식',
+  'footer.about': '프로젝트 소개',
+  'footer.legalNotice': '법적 고지',
+  'footer.privacy': '개인정보 및 쿠키',
+  'footer.consent': '개인정보 설정',
+  'step1.help': '단계별 가이드 보기',
+  'ads.label': '광고',
+  'faq.a9ads': 'Strava 데이터는 절대 기기 밖으로 나가지 않고, 방문 수는 쿠키 없이 익명으로 집계해요. Google 광고는 동의한 경우에만 광고 맞춤 설정과 측정을 위해 쿠키를 사용해요. 선택은 페이지 하단의 ‘개인정보 설정’에서 언제든 바꿀 수 있어요.',
 };
 
 export default ko;

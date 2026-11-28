@@ -1,5 +1,7 @@
+import { ADS, BRAND } from '../config';
 import { guardAccents } from '../ui/typo';
 import { LOCALE, isLang, langFromTag, type Lang } from './langs';
+import { PAGE_SLUG, type PageId } from './pages/types';
 import { polishSite as polish } from './polish';
 import { es, type SiteKey, type SiteMessages } from './site/es';
 import en from './site/en';
@@ -55,6 +57,8 @@ export function pctLabel(x: number): string {
 }
 
 export function tr(key: SiteKey, vars: Record<string, string | number> = {}, lang: Lang = current): string {
+  // Con publicidad, la respuesta sobre cookies es otra.
+  if (key === 'faq.a9' && ADS.client) key = 'faq.a9ads';
   // Respaldo si un idioma no ha podido descargarse: catalán → español; el resto → inglés.
   const fallback = lang === 'ca' ? dicts.get('es')! : dicts.get('en')!;
   let s = dicts.get(lang)?.[key] ?? fallback[key] ?? key;
@@ -73,6 +77,11 @@ export function applySiteLang(root: ParentNode = document) {
   root.querySelectorAll<HTMLElement>('[data-i18n-aria]').forEach((el) => {
     el.setAttribute('aria-label', tr(el.dataset.i18nAria as SiteKey));
   });
+  // Enlaces a las páginas de texto (guía, aviso legal…) del idioma elegido.
+  root.querySelectorAll<HTMLAnchorElement>('a[data-page]').forEach((a) => {
+    const slug = PAGE_SLUG[a.dataset.page as PageId];
+    if (slug) a.setAttribute('href', `${pathLang() ? '../' : ''}${current}/${slug}/`);
+  });
   if (root === document) {
     document.documentElement.lang = LOCALE[current];
     document.title = tr('meta.title');
@@ -82,7 +91,7 @@ export function applySiteLang(root: ParentNode = document) {
   guardAccents(root);
 }
 
-const STORE_KEY = 'myrunyear.lang';
+const STORE_KEY = `${BRAND.slug}.lang`;
 
 /** Carpeta de idioma de la página (/en/, /fr/…), si la hay. */
 export function pathLang(pathname = location.pathname): Lang | null {

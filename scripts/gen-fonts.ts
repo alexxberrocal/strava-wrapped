@@ -1,5 +1,5 @@
 // Genera src/styles/fonts/*.css: la tipografía de titulares para cirílico (Oswald 700) y para
-// chino, japonés y coreano (Noto Sans 900), con un alias propio ("RR Display …") declarado con
+// chino, japonés y coreano (Noto Sans 900), con un alias propio ("MRY Display …") declarado con
 // peso 400 para que el canvas y la web las pidan igual que a Anton (sin negrita sintética).
 // Solo woff2 y cada trozo con su unicode-range: el navegador baja únicamente los trozos con las
 // letras que de verdad aparecen. Uso: npx tsx scripts/gen-fonts.ts
@@ -11,10 +11,10 @@ const outDir = join(root, 'src/styles/fonts');
 mkdirSync(outDir, { recursive: true });
 
 export const FONT_SETS = [
-  { file: 'cyr', family: 'RR Display Cyr', pkg: 'oswald', css: '700.css' },
-  { file: 'sc', family: 'RR Display SC', pkg: 'noto-sans-sc', css: '900.css' },
-  { file: 'ja', family: 'RR Display JP', pkg: 'noto-sans-jp', css: '900.css' },
-  { file: 'ko', family: 'RR Display KR', pkg: 'noto-sans-kr', css: '900.css' },
+  { file: 'cyr', family: 'MRY Display Cyr', pkg: 'oswald', css: '700.css' },
+  { file: 'sc', family: 'MRY Display SC', pkg: 'noto-sans-sc', css: '900.css' },
+  { file: 'ja', family: 'MRY Display JP', pkg: 'noto-sans-jp', css: '900.css' },
+  { file: 'ko', family: 'MRY Display KR', pkg: 'noto-sans-kr', css: '900.css' },
 ] as const;
 
 for (const s of FONT_SETS) {

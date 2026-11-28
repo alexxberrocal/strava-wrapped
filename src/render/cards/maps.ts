@@ -3,7 +3,7 @@ import type { MultiPolygon, Position } from 'geojson';
 import { ease, prog } from '../anim';
 import { belowHero, fadeUp, headline, heroNumber, kicker, paragraph } from '../blocks';
 import type { Card, DeckEnv, Frame } from '../card';
-import { COLORS, CW, H, M, W, capRatio, cumulative, drawTracked, fitRoute, fitSize, projectRoutes, roundRect, setFont, tracePartial, traceFull, type Box, type Ctx } from '../kit';
+import { COLORS, CW, H, M, W, capRatio, cumulative, drawTracked, fitRoute, fitSize, layoutRich, projectRoutes, roundRect, setFont, tracePartial, traceFull, type Box, type Ctx } from '../kit';
 import { cleanName, splitLines } from './common';
 import type { CountryFeature } from '../../geo/countries';
 import type { Place } from '../../stats/types';
@@ -24,20 +24,15 @@ export function heatmapCard(env: DeckEnv): Card {
     duration: 8500,
     render(f) {
       const { ctx, theme } = f;
-      kicker(f, fmt.m('heatmap.kicker'), M, KICK);
       const name = fmt.upper(home.name ?? fmt.m('heatmap.city'));
       const hs = fitSize(ctx, name, 'display', 170, CW);
       const y = KICK + 64 + capRatio(ctx) * hs;
-      headline(f, [name], M, y, hs, { start: 120, color: COLORS.orange });
-      paragraph(
-        f,
-        fmt.m('heatmap.text', { runs: home.runs, dist: fmt.distWithUnit(home.distance, 0) }),
-        M,
-        y + 82,
-        CW,
-        38,
-        { start: 450 },
-      );
+      const text = fmt.m('heatmap.text', { runs: home.runs, dist: fmt.distWithUnit(home.distance, 0) });
+      // Fin del texto: las rutas que se salen del encuadre (tiradas largas) se funden antes de llegar.
+      const textBottom = f.memo(`textBottom:${text}:${Math.round(y)}`, () => {
+        const lay = layoutRich(ctx, text, CW, 38, 500, 800, 1.34);
+        return y + 82 + (lay.lines.length - 1) * lay.lineHeight + 14;
+      });
       const proj = f.memo('proj', () => {
         // Encuadre en el núcleo: las tiradas largas hacia otros pueblos no encogen la ciudad.
         const tight = n >= 15;
@@ -91,6 +86,21 @@ export function heatmapCard(env: DeckEnv): Card {
         ctx.stroke();
       }
       ctx.restore();
+      // Fundido arriba (bajo el texto) y abajo (bajo la escala y la marca de agua).
+      const fade = (y0: number, y1: number, solidTo: number) => {
+        const grad = ctx.createLinearGradient(0, y0, 0, y1);
+        grad.addColorStop(0, theme.bg);
+        grad.addColorStop(1, 'rgba(18,18,18,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, Math.min(y0, y1), W, Math.abs(y1 - y0));
+        ctx.fillStyle = theme.bg;
+        ctx.fillRect(0, Math.min(y0, solidTo), W, Math.abs(solidTo - y0));
+      };
+      fade(textBottom + 14, textBottom + 84, 0);
+      fade(1792, 1712, H);
+      kicker(f, fmt.m('heatmap.kicker'), M, KICK);
+      headline(f, [name], M, y, hs, { start: 120, color: COLORS.orange });
+      paragraph(f, text, M, y + 82, CW, 38, { start: 450 });
       // Escala 1 km
       fadeUp(f, 1200, () => {
         const meters = fmt.imperial ? 1609.344 : 1000;

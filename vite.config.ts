@@ -2,23 +2,51 @@
 import { createReadStream, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
-import { LANGS } from './src/i18n/langs.ts';
-import { localizeHtml, notFound, robots, sitemap } from './scripts/site-pages.ts';
+import { BRAND } from './src/config.ts';
+import { LANGS, isLang } from './src/i18n/langs.ts';
+import { PAGE_IDS, PAGE_SLUG } from './src/i18n/pages/types.ts';
+import { adsTxt, applySiteConfig, headersFile, licensesText, localizeHtml, notFound, pageHtml, robots, securityTxt, siteCfg, sitemap } from './scripts/site-pages.ts';
 
 /**
  * URL pública de la web (con barra final): enlaces al compartir, vista previa en WhatsApp/redes,
- * sitemap. En GitHub Actions la fija el workflow (variable SITE_URL del repositorio o la de Pages).
+ * sitemap. Por defecto, el dominio propio; se puede cambiar con la variable VITE_SITE_URL.
  */
 const SITE_URL = (process.env.VITE_SITE_URL || 'https://myrunyear.com/').replace(/\/?$/, '/');
+const CFG = siteCfg(SITE_URL);
+
+// Con publicidad hay ingresos: el aviso legal tiene que llevar el NIF y el domicilio del titular.
+if (CFG.ads.client && (!CFG.owner.nif || !CFG.owner.address)) {
+  throw new Error('Para activar la publicidad (ADS.client) rellena antes OWNER.nif y OWNER.address en src/config.ts: el aviso legal los exige.');
+}
+
+/** Redirección de la raíz al idioma de la persona: ?lang=, el elegido antes o el del navegador. */
+const LANG_REDIRECT_CODE = `(function(){try{var L=${JSON.stringify(LANGS)};function p(t){if(!t)return null;t=String(t).toLowerCase().split(/[-_]/)[0];if(t==='va'||t==='val')t='ca';if(t==='gl'||t==='eu')t='es';return L.indexOf(t)>=0?t:null}var l=p(new URLSearchParams(location.search).get('lang'));if(!l){try{l=p(localStorage.getItem('${BRAND.slug}.lang'))}catch(e){}}if(!l){var n=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language];for(var i=0;i<n.length&&!l;i++)l=p(n[i])}location.replace((l||'en')+'/'+location.search+location.hash)}catch(e){}})();`;
 
 /**
- * Metadatos con la URL pública y, al compilar, una página estática por idioma (/en/, /ca/…) con
- * los textos y la vista previa ya traducidos, más sitemap.xml, robots.txt y 404.html.
+ * Configuración de la web en el HTML y, al compilar, las páginas estáticas: la portada de cada idioma
+ * (/en/, /ca/…), las páginas de texto de cada idioma (guía, aviso legal…), sitemap.xml, robots.txt,
+ * 404.html, licenses.txt, ads.txt, security.txt y las cabeceras de seguridad.
  */
 function sitePages(): Plugin {
   return {
     name: 'site-pages',
-    transformIndexHtml: { order: 'pre', handler: (html) => html.replaceAll('%SITE_URL%', SITE_URL) },
+    transformIndexHtml: { order: 'pre', handler: (html) => applySiteConfig(html, CFG) },
+    // En desarrollo, las páginas de texto se generan al vuelo (con los estilos de la web).
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        const m = /^\/([a-z]{2})\/([a-z-]+)\/?(?:\?.*)?$/.exec(req.url ?? '');
+        const id = m && PAGE_IDS.find((p) => PAGE_SLUG[p] === m[2]);
+        if (!m || !id || !isLang(m[1])) return next();
+        try {
+          const raw = readFileSync(resolve(import.meta.dirname, 'index.html'), 'utf8');
+          const html = pageHtml(applySiteConfig(raw, CFG), m[1], id, CFG).replace('</head>', '  <script type="module" src="/src/dev/page.ts"></script>\n  </head>');
+          res.setHeader('Content-Type', 'text/html; charset=utf-8');
+          res.end(await server.transformIndexHtml(req.url ?? '/', html));
+        } catch (err) {
+          next(err);
+        }
+      });
+    },
     writeBundle: {
       sequential: true,
       order: 'post',
@@ -31,27 +59,35 @@ function sitePages(): Plugin {
         // de su idioma: los titulares salen bien desde el primer pintado.
         const scriptCss = (name: string) => Object.keys(bundle).find((f) => new RegExp(`^assets/${name}-[\\w-]+\\.css$`).test(f));
         const FONT_CSS: Partial<Record<(typeof LANGS)[number], string | undefined>> = { ru: scriptCss('cyr'), zh: scriptCss('sc'), ja: scriptCss('ja'), ko: scriptCss('ko') };
+        const withFont = (page: string, lang: (typeof LANGS)[number], rel: string) => {
+          const css = FONT_CSS[lang];
+          return css ? page.replace('</head>', `  <link rel="stylesheet" href="${rel}${css}" />\n  </head>`) : page;
+        };
         for (const lang of LANGS) {
           mkdirSync(join(dir, lang), { recursive: true });
-          let page = localizeHtml(html, lang, SITE_URL, `${lang}/`).replace(/\s*<!--lang-redirect-->/, '');
-          const css = FONT_CSS[lang];
-          if (css) page = page.replace('</head>', `  <link rel="stylesheet" href="../${css}" />\n  </head>`);
-          writeFileSync(join(dir, lang, 'index.html'), page);
+          const home = localizeHtml(html, lang, SITE_URL, `${lang}/`, CFG).replace(/\s*<!--lang-redirect-->/, '');
+          writeFileSync(join(dir, lang, 'index.html'), withFont(home, lang, '../'));
+          for (const id of PAGE_IDS) {
+            mkdirSync(join(dir, lang, PAGE_SLUG[id]), { recursive: true });
+            writeFileSync(join(dir, lang, PAGE_SLUG[id], 'index.html'), withFont(pageHtml(html, lang, id, CFG), lang, '../../'));
+          }
         }
         // La raíz: en español para quien no ejecuta JavaScript (buscadores, vistas previas); el
         // resto pasa a la carpeta de su idioma antes de pintar nada.
-        const root = localizeHtml(html, 'es', SITE_URL, '').replace('<!--lang-redirect-->', LANG_REDIRECT);
+        const root = localizeHtml(html, 'es', SITE_URL, '', CFG).replace('<!--lang-redirect-->', `<script>${LANG_REDIRECT_CODE}</script>`);
         writeFileSync(file, root);
         writeFileSync(join(dir, 'sitemap.xml'), sitemap(SITE_URL));
         writeFileSync(join(dir, 'robots.txt'), robots(SITE_URL));
         writeFileSync(join(dir, '404.html'), notFound(SITE_URL));
+        writeFileSync(join(dir, '_headers'), headersFile(CFG, [LANG_REDIRECT_CODE]));
+        writeFileSync(join(dir, 'licenses.txt'), licensesText(import.meta.dirname));
+        mkdirSync(join(dir, '.well-known'), { recursive: true });
+        writeFileSync(join(dir, '.well-known', 'security.txt'), securityTxt(CFG));
+        if (adsTxt(CFG)) writeFileSync(join(dir, 'ads.txt'), adsTxt(CFG));
       },
     },
   };
 }
-
-/** Redirección de la raíz al idioma de la persona: ?lang=, el elegido antes o el del navegador. */
-const LANG_REDIRECT = `<script>(function(){try{var L=${JSON.stringify(LANGS)};function p(t){if(!t)return null;t=String(t).toLowerCase().split(/[-_]/)[0];if(t==='va'||t==='val')t='ca';if(t==='gl'||t==='eu')t='es';return L.indexOf(t)>=0?t:null}var l=p(new URLSearchParams(location.search).get('lang'));if(!l){try{l=p(localStorage.getItem('myrunyear.lang'))}catch(e){}}if(!l){var n=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language];for(var i=0;i<n.length&&!l;i++)l=p(n[i])}location.replace((l||'en')+'/'+location.search+location.hash)}catch(e){}})();</script>`;
 
 /** Solo en desarrollo: sirve el export de prueba (npm run sample) en /__sample.zip. */
 function sampleExport(): Plugin {

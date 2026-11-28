@@ -99,11 +99,21 @@ const ja: SiteMessages = {
   'faq.q8': 'Strava の公式アプリですか？',
   'faq.a8': 'いいえ。My Run Year は独立したプロジェクトです。Strava からダウンロードできるデータアーカイブを読み込むので Strava に対応していますが、パスワードを使ったり、アカウントに接続したりすることはありません。',
   'faq.q9': 'Cookie やアクセス解析を使っていますか？',
-  'faq.a9': 'いいえ。トラッキング Cookie もアクセス解析もなく、データが端末の外に出ることもありません。ブラウザに保存するのは、選んだ言語だけです。',
+  'faq.a9': 'Cookie は使っていません。ブラウザに保存するのは選んだ言語だけで、アクセス数は Cookie やプロファイルを使わず匿名で集計しています。Strava のデータが端末の外に出ることはありません。',
   'share.textFull': '私のランニングイヤー 🏃 あなたも {url} で作ってみよう',
   'share.imageErr': '画像を作成できませんでした',
   'results.invite': '友だちにシェア',
   'share.copied': 'リンクをコピーしました',
+  'footer.nav': '詳しい情報',
+  'footer.guide': 'Strava のデータをダウンロードする方法',
+  'footer.how': '集計のしくみ',
+  'footer.about': 'このプロジェクトについて',
+  'footer.legalNotice': '運営者情報',
+  'footer.privacy': 'プライバシーと Cookie',
+  'footer.consent': 'プライバシー設定',
+  'step1.help': '手順ガイドを見る',
+  'ads.label': '広告',
+  'faq.a9ads': 'Strava のデータが端末の外に出ることはなく、アクセス数は Cookie を使わず匿名で集計しています。Google の広告は、同意した場合にのみ、広告のパーソナライズと効果測定のために Cookie を使います。選択はページ下部の「プライバシー設定」からいつでも変更できます。',
 };
 
 export default ja;
