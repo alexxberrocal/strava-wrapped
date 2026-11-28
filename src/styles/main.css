@@ -1516,6 +1516,7 @@ details.options .setup {
   letter-spacing: 0.005em;
   text-wrap: balance;
   overflow-wrap: break-word;
+  -webkit-hyphens: auto;
   hyphens: auto;
 }
 .doc__lead {

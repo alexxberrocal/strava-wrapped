@@ -159,6 +159,17 @@ async function main() {
   const report: Report = {};
   const t0 = Date.now();
   try {
+    // La raíz redirige al idioma de cada persona (script en línea: la política de seguridad lo permite
+    // solo por su huella) y conserva lo que venga detrás en la dirección.
+    {
+      const errors: string[] = [];
+      const page = await newPage(browser, DESKTOP, errors);
+      await page.goto(`${base}?utm=prueba#faq`, { waitUntil: 'networkidle0' });
+      const at = (await page.evaluate('location.pathname + location.search + location.hash')) as string;
+      report['raíz · redirección de idioma'] = errors.splice(0);
+      if (!/^\/[a-z]{2}\/\?utm=prueba#faq$/.test(at)) report['raíz · redirección de idioma'].push(`no redirige al idioma: ${at}`);
+      await page.close();
+    }
     for (const lang of only) {
       const errors: string[] = [];
       // Portada en ordenador y en móvil, con todas las preguntas abiertas.
